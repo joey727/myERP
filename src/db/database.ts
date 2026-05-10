@@ -460,6 +460,12 @@ export async function getSaleWithItems(saleId: number) {
     : null;
 }
 
+export async function getSaleItems(saleId: number): Promise<SaleItem[]> {
+  const db = await database();
+  const rows = await db.getAllAsync<Record<string, unknown>>("SELECT * FROM sale_items WHERE sale_id = ? ORDER BY id", saleId);
+  return rows.map(saleItemFromRow);
+}
+
 export async function listRecentSales() {
   const db = await database();
   const rows = await db.getAllAsync<Record<string, unknown>>("SELECT * FROM sales ORDER BY created_at DESC LIMIT 20");
