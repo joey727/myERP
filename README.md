@@ -53,7 +53,8 @@ Ghanaian small businesses face unique challenges:
 - Includes customer phone if provided
 
 ### Data & Backup
-- Export all your data as JSON
+- Export all your data as CSV (spreadsheet format)
+- Includes products, staff, sales, customers, and more
 - Works completely offline
 - No cloud subscription needed
 
