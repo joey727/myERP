@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Alert, ScrollView, View } from "react-native";
+import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { useRouter } from "expo-router";
+import { Text } from "react-native";
 
 import { getBusiness, listProducts, listStaff, listSales, listAllCustomers, getSaleItems } from "@/db/database";
 import { PrimaryButton, Screen, SecondaryButton } from "@/ui/components";
-import { colors } from "@/ui/theme";
-import { Text } from "react-native";
+import { colors, fontSize } from "@/ui/theme";
 
 function convertToCSV(data: Record<string, unknown>[], headers: string[]): string {
   if (data.length === 0) return "";
@@ -134,11 +135,17 @@ export default function BackupScreen() {
       }
 
       const csv = csvParts.join("\n");
+      const fileName = `myERP-backup-${new Date().toISOString().split("T")[0]}.csv`;
+      const file = new File(Paths.document, fileName);
 
+      file.write(csv, {
+        encoding: "utf8"
+      });
+
+      const fileUri = file.uri;
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
-        const fileName = `myERP-backup-${new Date().toISOString().split("T")[0]}.csv`;
-        await Sharing.shareAsync(csv, {
+        await Sharing.shareAsync(fileUri, {
           mimeType: "text/csv",
           dialogTitle: "Export myERP Backup",
           UTI: "public.comma-separated-values-text"
@@ -157,8 +164,8 @@ export default function BackupScreen() {
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
       <Screen>
         <View style={{ marginBottom: 16 }}>
-          <Text style={{ color: colors.ink, fontSize: 24, fontWeight: "900" }}>Backup & Export</Text>
-          <Text style={{ color: colors.muted, marginTop: 8 }}>
+          <Text style={{ color: colors.ink, fontSize: fontSize["3xl"], fontWeight: "900" }}>Backup & Export</Text>
+          <Text style={{ color: colors.muted, marginTop: 8, lineHeight: 22 }}>
             Export all your business data as a CSV file. You can use this to transfer data to another device or keep a backup.
           </Text>
         </View>

@@ -554,7 +554,7 @@ export async function getStaffSalesStats(startDate?: string, endDate?: string): 
 
   const params: string[] = [];
   if (startDate && endDate) {
-    query += ` AND date(s.created_at) >= date(?) AND date(s.created_at) <= date(?)`;
+    query += ` WHERE date(s.created_at) >= date(?) AND date(s.created_at) <= date(?)`;
     params.push(startDate, endDate);
   }
 
