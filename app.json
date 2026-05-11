@@ -12,7 +12,8 @@
       "bundleIdentifier": "com.myerp.app",
       "infoPlist": {
         "NSCameraUsageDescription": "myERP uses the camera to scan product barcodes."
-      }
+      },
+      "developmentTeam": "KK5297J8DN"
     },
     "android": {
       "package": "com.myerp.app",
