@@ -7,8 +7,8 @@ import { Alert, ScrollView, Text, View } from "react-native";
 import { getBusiness, getSaleWithItems } from "@/db/database";
 import type { Business, Sale, SaleItem } from "@/db/types";
 import { formatMoney } from "@/lib/money";
-import { Card, PrimaryButton, Screen, SecondaryButton } from "@/ui/components";
-import { colors } from "@/ui/theme";
+import { Badge, Card, PrimaryButton, Screen, ScreenLoader, SecondaryButton } from "@/ui/components";
+import { colors, fontSize, radius } from "@/ui/theme";
 
 const thermalReceiptWidth = 226;
 const minimumThermalReceiptHeight = 420;
@@ -215,11 +215,7 @@ export default function ReceiptScreen() {
   }, [params.id]);
 
   if (!sale) {
-    return (
-      <Screen>
-        <Text style={{ color: colors.muted }}>Loading receipt</Text>
-      </Screen>
-    );
+    return <ScreenLoader message="Loading receipt" />;
   }
 
   const currency = business?.currency ?? "GHS";
@@ -277,18 +273,33 @@ export default function ReceiptScreen() {
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
       <Screen>
         <Card>
-          <View style={{ gap: 4 }}>
-            <Text style={{ color: colors.ink, fontSize: 24, fontWeight: "900" }}>{business?.name ?? "myERP"}</Text>
-            <Text style={{ color: colors.muted }}>{sale.receiptNumber}</Text>
-            <Text style={{ color: colors.muted }}>{new Date(sale.createdAt).toLocaleString()}</Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <View style={{ gap: 4, flex: 1 }}>
+              <Text style={{ color: colors.ink, fontSize: 24, fontWeight: "900" }}>{business?.name ?? "myERP"}</Text>
+              <Text style={{ color: colors.muted }}>{sale.receiptNumber}</Text>
+              <Text style={{ color: colors.muted, fontSize: fontSize.sm }}>{new Date(sale.createdAt).toLocaleString()}</Text>
+            </View>
+            <Badge label="Paid" tone="success" />
           </View>
 
           <View style={{ borderTopColor: colors.border, borderTopWidth: 1, gap: 10, paddingTop: 12 }}>
-            {items.map((item) => (
-              <View key={item.id} style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
+            {items.map((item, i) => (
+              <View
+                key={item.id}
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  paddingVertical: 6,
+                  backgroundColor: i % 2 === 0 ? "transparent" : colors.panelAlt,
+                  marginHorizontal: -4,
+                  paddingHorizontal: 4,
+                  borderRadius: radius.sm,
+                }}
+              >
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.ink, fontWeight: "900" }}>{item.productName}</Text>
-                  <Text style={{ color: colors.muted }}>
+                  <Text style={{ color: colors.muted, fontSize: fontSize.sm }}>
                     {item.quantity} x {formatMoney(item.unitPrice, currency)}
                   </Text>
                 </View>
@@ -308,8 +319,19 @@ export default function ReceiptScreen() {
                 <Text style={{ color: colors.ink, fontWeight: "700" }}>{formatMoney(tax, currency)}</Text>
               </View>
             )}
-            <Text style={{ color: colors.ink, fontSize: 26, fontWeight: "900" }}>{formatMoney(total, currency)}</Text>
-            <Text style={{ color: colors.muted }}>
+            <View style={{
+              backgroundColor: colors.successBg,
+              borderRadius: radius.md,
+              padding: 12,
+              marginTop: 4,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}>
+              <Text style={{ color: colors.success, fontWeight: "700" }}>Total</Text>
+              <Text style={{ color: colors.success, fontSize: fontSize["3xl"], fontWeight: "900" }}>{formatMoney(total, currency)}</Text>
+            </View>
+            <Text style={{ color: colors.muted, marginTop: 4 }}>
               Paid via {sale.paymentMethod.toUpperCase()}
               {sale.customerPhone ? `: ${sale.customerPhone}` : ""}
             </Text>

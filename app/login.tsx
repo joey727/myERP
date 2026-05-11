@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { useRouter } from "expo-router";
 
 import { login } from "@/auth/session";
-import { colors } from "@/ui/theme";
+import { colors, fontSize, radius } from "@/ui/theme";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -71,8 +71,12 @@ export default function LoginScreen() {
           }
           if (key === "back") {
             return (
-              <Pressable key={i} onPress={handleBackspace} style={styles.key}>
-                <Text style={styles.keyText}>⌫</Text>
+              <Pressable
+                key={i}
+                onPress={handleBackspace}
+                style={({ pressed }) => [styles.key, pressed && styles.keyPressed]}
+              >
+                <Text style={styles.keyText}>&#9003;</Text>
               </Pressable>
             );
           }
@@ -102,14 +106,15 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.ink,
-    fontSize: 34,
-    fontWeight: "900" as const,
-    letterSpacing: 0
+    fontSize: fontSize["4xl"],
+    fontWeight: "900",
+    letterSpacing: 0,
+    textAlign: "center"
   },
   subtitle: {
     color: colors.muted,
-    fontSize: 16,
-    textAlign: "center" as const
+    fontSize: fontSize.lg,
+    textAlign: "center"
   },
   dot: {
     width: 16,
@@ -117,7 +122,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 2,
     borderColor: colors.border,
-    backgroundColor: "#ffffff"
+    backgroundColor: colors.panel
   },
   dotFilled: {
     backgroundColor: colors.primary,
@@ -129,22 +134,22 @@ const styles = StyleSheet.create({
   },
   error: {
     color: colors.warning,
-    fontSize: 14,
-    fontWeight: "700" as const
+    fontSize: fontSize.md,
+    fontWeight: "700"
   },
   keypad: {
-    flexDirection: "row" as const,
-    flexWrap: "wrap" as const,
+    flexDirection: "row",
+    flexWrap: "wrap",
     width: 280,
-    justifyContent: "center" as const
+    justifyContent: "center"
   },
   key: {
     width: 80,
     height: 64,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
+    alignItems: "center",
+    justifyContent: "center",
     margin: 4,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     backgroundColor: colors.panel,
     borderWidth: 1,
     borderColor: colors.border
@@ -155,11 +160,12 @@ const styles = StyleSheet.create({
     margin: 4
   },
   keyPressed: {
-    backgroundColor: colors.border
+    backgroundColor: colors.panelAlt,
+    borderColor: colors.primary
   },
   keyText: {
     color: colors.ink,
     fontSize: 28,
-    fontWeight: "700" as const
+    fontWeight: "700"
   }
 });

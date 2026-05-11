@@ -1,6 +1,7 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -10,6 +11,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -21,8 +23,8 @@ import {
 } from "@/db/database";
 import type { PaymentMethod, Product, StaffMember } from "@/db/types";
 import { formatMoney } from "@/lib/money";
-import { Card, Field, PrimaryButton, Screen } from "@/ui/components";
-import { colors } from "@/ui/theme";
+import { Card, Chip, EmptyState, Field, PrimaryButton, Screen } from "@/ui/components";
+import { colors, fontSize, radius, shadow } from "@/ui/theme";
 
 type CartItem = {
   product: Product;
@@ -31,6 +33,7 @@ type CartItem = {
 
 export default function SalesScreen() {
   const isFocused = useIsFocused();
+  const { width: screenWidth } = useWindowDimensions();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -74,15 +77,19 @@ export default function SalesScreen() {
     setFilteredProducts(filtered);
   }, [searchQuery, selectedCategory, products]);
 
-  const categories = useMemo(() => {
+  const categories = (() => {
     const cats = new Set(products.map((p) => p.category));
     return Array.from(cats).sort();
-  }, [products]);
+  })();
 
   const total = cart.reduce(
     (sum, item) => sum + item.product.sellingPrice * item.quantity,
     0,
   );
+
+  const columnCount = screenWidth > 400 ? 3 : 2;
+  const gap = 8;
+  const productCardWidth = (screenWidth - 40 - gap * (columnCount - 1)) / columnCount;
 
   function addToCart(product: Product) {
     const existing = cart.find((item) => item.product.id === product.id);
@@ -128,15 +135,16 @@ export default function SalesScreen() {
           <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
             <TextInput
               placeholder="Search products..."
+              placeholderTextColor={colors.inputPlaceholder}
               onChangeText={setSearchQuery}
               style={styles.searchInput}
               value={searchQuery}
             />
             <Pressable
               onPress={() => router.push("/scan")}
-              style={styles.scanButton}
+              style={({ pressed }) => [styles.scanButton, pressed && { backgroundColor: colors.primaryDark }]}
             >
-              <Text style={styles.scanButtonText}>Scan</Text>
+              <Ionicons color="#ffffff" name="scan-outline" size={20} />
             </Pressable>
           </View>
 
@@ -149,40 +157,18 @@ export default function SalesScreen() {
                 flexWrap: "wrap",
               }}
             >
-              <Pressable
+              <Chip
+                label="All"
                 onPress={() => setSelectedCategory(null)}
-                style={[
-                  styles.categoryChip,
-                  !selectedCategory && styles.categoryChipActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.categoryChipText,
-                    !selectedCategory && styles.categoryChipTextActive,
-                  ]}
-                >
-                  All
-                </Text>
-              </Pressable>
+                selected={!selectedCategory}
+              />
               {categories.map((cat) => (
-                <Pressable
+                <Chip
                   key={cat}
+                  label={cat}
                   onPress={() => setSelectedCategory(cat)}
-                  style={[
-                    styles.categoryChip,
-                    selectedCategory === cat && styles.categoryChipActive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.categoryChipText,
-                      selectedCategory === cat && styles.categoryChipTextActive,
-                    ]}
-                  >
-                    {cat}
-                  </Text>
-                </Pressable>
+                  selected={selectedCategory === cat}
+                />
               ))}
             </View>
           )}
@@ -200,6 +186,7 @@ export default function SalesScreen() {
                   onPress={() => addToCart(product)}
                   style={({ pressed }) => [
                     styles.productCard,
+                    { width: productCardWidth },
                     pressed && styles.productCardPressed,
                     disabled && styles.productCardDisabled,
                   ]}
@@ -209,6 +196,9 @@ export default function SalesScreen() {
                   </Text>
                   <Text style={styles.productPrice}>
                     {formatMoney(product.sellingPrice, "GHS")}
+                  </Text>
+                  <Text style={styles.productStock}>
+                    {remaining} left
                   </Text>
                   {inCart > 0 && (
                     <View style={styles.cartBadge}>
@@ -221,13 +211,11 @@ export default function SalesScreen() {
           </View>
 
           {filteredProducts.length === 0 && (
-            <Card>
-              <Text style={{ color: colors.muted, textAlign: "center" }}>
-                {searchQuery
-                  ? "No products match your search"
-                  : "No products in inventory"}
-              </Text>
-            </Card>
+            <EmptyState
+              icon={searchQuery ? "search-outline" : "cube-outline"}
+              title={searchQuery ? "No matches" : "No products in inventory"}
+              subtitle={searchQuery ? "Try a different search term." : "Add products in the Inventory tab first."}
+            />
           )}
 
           {cart.length > 0 && (
@@ -235,12 +223,12 @@ export default function SalesScreen() {
               <Text
                 style={{
                   color: colors.ink,
-                  fontSize: 18,
+                  fontSize: fontSize.xl,
                   fontWeight: "900",
                   marginBottom: 12,
                 }}
               >
-                Cart ({cart.length} items)
+                Cart ({cart.length} item{cart.length !== 1 ? "s" : ""})
               </Text>
               {cart.map((item) => (
                 <View key={item.product.id} style={styles.cartItem}>
@@ -251,7 +239,7 @@ export default function SalesScreen() {
                     >
                       {item.product.name}
                     </Text>
-                    <Text style={{ color: colors.muted, fontSize: 13 }}>
+                    <Text style={{ color: colors.muted, fontSize: fontSize.base }}>
                       {formatMoney(item.product.sellingPrice, "GHS")}
                     </Text>
                   </View>
@@ -264,17 +252,9 @@ export default function SalesScreen() {
                   >
                     <Pressable
                       onPress={() => updateQuantity(item.product.id, -1)}
-                      style={styles.qtyButton}
+                      style={({ pressed }) => [styles.qtyButton, pressed && { backgroundColor: colors.panelAlt }]}
                     >
-                      <Text
-                        style={{
-                          color: colors.ink,
-                          fontSize: 18,
-                          fontWeight: "700",
-                        }}
-                      >
-                        -
-                      </Text>
+                      <Text style={styles.qtyButtonText}>-</Text>
                     </Pressable>
                     <Text
                       style={{
@@ -288,17 +268,9 @@ export default function SalesScreen() {
                     </Text>
                     <Pressable
                       onPress={() => updateQuantity(item.product.id, 1)}
-                      style={styles.qtyButton}
+                      style={({ pressed }) => [styles.qtyButton, pressed && { backgroundColor: colors.panelAlt }]}
                     >
-                      <Text
-                        style={{
-                          color: colors.ink,
-                          fontSize: 18,
-                          fontWeight: "700",
-                        }}
-                      >
-                        +
-                      </Text>
+                      <Text style={styles.qtyButtonText}>+</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -324,7 +296,7 @@ export default function SalesScreen() {
             <Text
               style={{
                 color: colors.ink,
-                fontSize: 18,
+                fontSize: fontSize.xl,
                 fontWeight: "900",
                 marginBottom: 8,
               }}
@@ -336,18 +308,19 @@ export default function SalesScreen() {
                 <Pressable
                   key={method}
                   onPress={() => setPaymentMethod(method)}
-                  style={{
-                    alignItems: "center",
+                  style={({ pressed }) => ({
+                    alignItems: "center" as const,
                     backgroundColor:
-                      paymentMethod === method ? colors.primary : "#ffffff",
+                      paymentMethod === method ? colors.primary : colors.panel,
                     borderColor:
                       paymentMethod === method ? colors.primary : colors.border,
-                    borderRadius: 8,
+                    borderRadius: radius.md,
                     borderWidth: 1,
                     flex: 1,
                     minHeight: 44,
-                    justifyContent: "center",
-                  }}
+                    justifyContent: "center" as const,
+                    opacity: pressed ? 0.9 : 1,
+                  })}
                 >
                   <Text
                     style={{
@@ -374,7 +347,7 @@ export default function SalesScreen() {
             <Text
               style={{
                 color: colors.ink,
-                fontSize: 13,
+                fontSize: fontSize.base,
                 fontWeight: "700",
                 marginTop: 8,
               }}
@@ -390,30 +363,12 @@ export default function SalesScreen() {
               }}
             >
               {staff.map((member) => (
-                <Pressable
+                <Chip
                   key={member.id}
+                  label={member.name}
                   onPress={() => setStaffId(member.id)}
-                  style={{
-                    backgroundColor:
-                      staffId === member.id ? colors.primary : "#ffffff",
-                    borderColor:
-                      staffId === member.id ? colors.primary : colors.border,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    paddingHorizontal: 10,
-                    paddingVertical: 6,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: staffId === member.id ? "#ffffff" : colors.ink,
-                      fontWeight: "800",
-                      fontSize: 13,
-                    }}
-                  >
-                    {member.name}
-                  </Text>
-                </Pressable>
+                  selected={staffId === member.id}
+                />
               ))}
             </View>
             <PrimaryButton
@@ -460,44 +415,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.panel,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
     color: colors.ink,
-    fontSize: 16,
+    fontSize: fontSize.lg,
     minHeight: 44,
     paddingHorizontal: 12,
   },
   scanButton: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    justifyContent: "center",
-    minHeight: 44,
-  },
-  scanButtonText: {
-    color: "#ffffff",
-    fontWeight: "900",
-    fontSize: 14,
-  },
-  categoryChip: {
-    backgroundColor: colors.panel,
-    borderColor: colors.border,
-    borderRadius: 20,
-    borderWidth: 1,
+    borderRadius: radius.md,
     paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  categoryChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  categoryChipText: {
-    color: colors.muted,
-    fontWeight: "700",
-    fontSize: 13,
-  },
-  categoryChipTextActive: {
-    color: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: 44,
   },
   gridContainer: {
     flexDirection: "row",
@@ -505,30 +436,37 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   productCard: {
-    width: "31%",
     backgroundColor: colors.panel,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
     padding: 10,
-    minHeight: 80,
+    minHeight: 90,
+    justifyContent: "space-between",
+    ...shadow.sm,
   },
   productCardPressed: {
-    backgroundColor: colors.border,
+    backgroundColor: colors.panelAlt,
+    borderColor: colors.primary,
   },
   productCardDisabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
   productName: {
     color: colors.ink,
     fontWeight: "800",
-    fontSize: 12,
+    fontSize: fontSize.sm,
     marginBottom: 4,
   },
   productPrice: {
     color: colors.primary,
     fontWeight: "900",
-    fontSize: 14,
+    fontSize: fontSize.md,
+  },
+  productStock: {
+    color: colors.muted,
+    fontSize: fontSize.xs,
+    marginTop: 2,
   },
   cartBadge: {
     position: "absolute",
@@ -544,7 +482,7 @@ const styles = StyleSheet.create({
   cartBadgeText: {
     color: "#ffffff",
     fontWeight: "900",
-    fontSize: 11,
+    fontSize: fontSize.xs,
   },
   cartItem: {
     flexDirection: "row",
@@ -553,12 +491,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   qtyButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
+    width: 34,
+    height: 34,
+    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
+  },
+  qtyButtonText: {
+    color: colors.ink,
+    fontSize: fontSize.xl,
+    fontWeight: "700",
   },
 });

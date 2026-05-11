@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { FlatList, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
+import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { listSales } from "@/db/database";
 import type { Sale } from "@/db/types";
 import { formatMoney } from "@/lib/money";
-import { Card, Screen } from "@/ui/components";
-import { colors } from "@/ui/theme";
+import { Card, EmptyState, Screen } from "@/ui/components";
+import { colors, fontSize, radius } from "@/ui/theme";
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -53,16 +53,19 @@ export default function HistoryScreen() {
   }
 
   const renderItem = ({ item }: { item: Sale }) => (
-    <Pressable onPress={() => router.push(`/receipt/${item.id}`)}>
+    <Pressable
+      onPress={() => router.push(`/receipt/${item.id}`)}
+      style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1, marginBottom: 8 })}
+    >
       <Card>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <View>
             <Text style={{ color: colors.ink, fontWeight: "900" }}>{item.receiptNumber}</Text>
-            <Text style={{ color: colors.muted, fontSize: 13 }}>{formatDate(item.createdAt)}</Text>
+            <Text style={{ color: colors.muted, fontSize: fontSize.base }}>{formatDate(item.createdAt)}</Text>
           </View>
           <View style={{ alignItems: "flex-end" }}>
-            <Text style={{ color: colors.ink, fontWeight: "900", fontSize: 18 }}>{formatMoney(item.total, "GHS")}</Text>
-            <Text style={{ color: colors.muted, fontSize: 13 }}>{item.paymentMethod.toUpperCase()}</Text>
+            <Text style={{ color: colors.ink, fontWeight: "900", fontSize: fontSize.xl }}>{formatMoney(item.total, "GHS")}</Text>
+            <Text style={{ color: colors.muted, fontSize: fontSize.base }}>{item.paymentMethod.toUpperCase()}</Text>
           </View>
         </View>
       </Card>
@@ -75,6 +78,7 @@ export default function HistoryScreen() {
         <View style={styles.searchContainer}>
           <TextInput
             placeholder="Search by receipt number..."
+            placeholderTextColor={colors.inputPlaceholder}
             onChangeText={setSearch}
             style={styles.searchInput}
             value={search}
@@ -90,11 +94,17 @@ export default function HistoryScreen() {
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           ListEmptyComponent={
-            <Card>
-              <Text style={{ color: colors.muted, textAlign: "center" }}>
-                {loading ? "Loading..." : "No sales found"}
-              </Text>
-            </Card>
+            loading ? (
+              <Card>
+                <Text style={{ color: colors.muted, textAlign: "center" }}>Loading...</Text>
+              </Card>
+            ) : (
+              <EmptyState
+                icon="receipt-outline"
+                title="No sales found"
+                subtitle={search ? "Try a different search term." : "Your sales history will appear here."}
+              />
+            )
           }
         />
       </Screen>
@@ -102,18 +112,18 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   searchContainer: {
     marginBottom: 8
   },
   searchInput: {
     backgroundColor: colors.panel,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
     color: colors.ink,
-    fontSize: 16,
+    fontSize: fontSize.lg,
     minHeight: 44,
     paddingHorizontal: 12
   }
-};
+});

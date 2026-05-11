@@ -3,27 +3,23 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
 
-import { PrimaryButton, Screen } from "@/ui/components";
-import { colors } from "@/ui/theme";
+import { PrimaryButton, Screen, ScreenLoader } from "@/ui/components";
+import { colors, fontSize, radius } from "@/ui/theme";
 
 export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
 
   if (!permission) {
-    return (
-      <Screen>
-        <Text style={{ color: colors.muted }}>Checking camera permission</Text>
-      </Screen>
-    );
+    return <ScreenLoader message="Checking camera permission" />;
   }
 
   if (!permission.granted) {
     return (
       <Screen>
         <View style={{ flex: 1, gap: 14, justifyContent: "center" }}>
-          <Text style={{ color: colors.ink, fontSize: 22, fontWeight: "900" }}>Camera access</Text>
-          <Text style={{ color: colors.muted, fontSize: 16, lineHeight: 23 }}>
+          <Text style={{ color: colors.ink, fontSize: fontSize["2xl"], fontWeight: "900" }}>Camera access</Text>
+          <Text style={{ color: colors.muted, fontSize: fontSize.lg, lineHeight: 23 }}>
             Barcode scanning needs camera permission.
           </Text>
           <PrimaryButton onPress={requestPermission} title="Allow camera" />
@@ -52,7 +48,7 @@ export default function ScanScreen() {
         pointerEvents="none"
         style={{
           borderColor: "#ffffff",
-          borderRadius: 8,
+          borderRadius: radius.md,
           borderWidth: 2,
           height: 180,
           left: "10%",
@@ -62,7 +58,7 @@ export default function ScanScreen() {
         }}
       />
       <View style={{ bottom: 36, left: 20, position: "absolute", right: 20 }}>
-        <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "800", textAlign: "center" }}>
+        <Text style={{ color: "#ffffff", fontSize: fontSize.lg, fontWeight: "800", textAlign: "center" }}>
           Place the barcode inside the frame
         </Text>
       </View>

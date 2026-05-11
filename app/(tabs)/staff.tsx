@@ -1,12 +1,12 @@
 import { useIsFocused } from "@react-navigation/native";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { addStaff, deleteStaff, listStaff, updateStaff } from "@/db/database";
 import type { StaffMember, StaffRole } from "@/db/types";
-import { Card, Field, PrimaryButton, Screen } from "@/ui/components";
-import { colors } from "@/ui/theme";
+import { ActionButton, Badge, Card, ChipGroup, EmptyState, Field, PrimaryButton, Screen } from "@/ui/components";
+import { colors, fontSize } from "@/ui/theme";
 
 const roles: StaffRole[] = ["manager", "cashier", "inventory"];
 
@@ -70,30 +70,15 @@ export default function StaffScreen() {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         <Screen>
           <Card>
-            <Text style={{ color: colors.ink, fontSize: 18, fontWeight: "900" }}>Add staff login</Text>
+            <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900" }}>Add staff login</Text>
             <Field label="Staff name" onChangeText={setName} placeholder="Cashier name" value={name} />
-            <Text style={{ color: colors.ink, fontSize: 13, fontWeight: "700" }}>Role</Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {roles.map((item) => (
-                <Text
-                  key={item}
-                  onPress={() => setRole(item)}
-                  style={{
-                    backgroundColor: role === item ? colors.primary : "#ffffff",
-                    borderColor: role === item ? colors.primary : colors.border,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    color: role === item ? "#ffffff" : colors.ink,
-                    fontWeight: "800",
-                    paddingHorizontal: 10,
-                    paddingVertical: 8,
-                    textTransform: "capitalize"
-                  }}
-                >
-                  {item}
-                </Text>
-              ))}
-            </View>
+            <Text style={{ color: colors.ink, fontSize: fontSize.base, fontWeight: "700" }}>Role</Text>
+            <ChipGroup
+              items={roles}
+              selected={role}
+              onSelect={setRole}
+              labelFn={(r) => r.charAt(0).toUpperCase() + r.slice(1)}
+            />
             <Field keyboardType="number-pad" label="PIN" onChangeText={setPin} secureTextEntry value={pin} />
             <PrimaryButton
               disabled={!canSave}
@@ -109,55 +94,39 @@ export default function StaffScreen() {
           </Card>
 
           <View style={{ gap: 10 }}>
-            <Text style={{ color: colors.ink, fontSize: 18, fontWeight: "900" }}>Team ({staff.length})</Text>
-            {staff.map((member) => (
-              <Card key={member.id}>
-                <Pressable onPress={() => handleEdit(member)}>
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
-                    <View style={{ flex: 1, gap: 4 }}>
-                      <Text style={{ color: colors.ink, fontSize: 16, fontWeight: "900" }}>{member.name}</Text>
-                      <Text style={{ color: colors.muted, textTransform: "capitalize" }}>{member.role}</Text>
+            <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900" }}>Team ({staff.length})</Text>
+            {staff.length === 0 ? (
+              <EmptyState
+                icon="people-outline"
+                title="No staff yet"
+                subtitle="Add your first team member above."
+              />
+            ) : (
+              staff.map((member) => (
+                <Card key={member.id}>
+                  <Pressable onPress={() => handleEdit(member)}>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                      <View style={{ flex: 1, gap: 4 }}>
+                        <Text style={{ color: colors.ink, fontSize: fontSize.lg, fontWeight: "900" }}>{member.name}</Text>
+                        <Text style={{ color: colors.muted, textTransform: "capitalize" }}>{member.role}</Text>
+                      </View>
+                      <Badge
+                        label={member.active ? "Active" : "Inactive"}
+                        tone={member.active ? "success" : "muted"}
+                      />
                     </View>
-                    <Text style={{ color: member.active ? colors.success : colors.muted, fontWeight: "900" }}>
-                      {member.active ? "Active" : "Inactive"}
-                    </Text>
+                  </Pressable>
+                  <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+                    <ActionButton onPress={() => handleEdit(member)} title="Edit" />
+                    <ActionButton onPress={() => handleToggleActive(member)} title={member.active ? "Deactivate" : "Activate"} />
+                    <ActionButton onPress={() => handleDelete(member)} title="Delete" variant="destructive" />
                   </View>
-                </Pressable>
-                <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
-                  <Pressable onPress={() => handleEdit(member)} style={styles.actionButton}>
-                    <Text style={styles.actionButtonText}>Edit</Text>
-                  </Pressable>
-                  <Pressable onPress={() => handleToggleActive(member)} style={styles.actionButton}>
-                    <Text style={styles.actionButtonText}>{member.active ? "Deactivate" : "Activate"}</Text>
-                  </Pressable>
-                  <Pressable onPress={() => handleDelete(member)} style={[styles.actionButton, styles.deleteButton]}>
-                    <Text style={{ color: colors.warning, fontSize: 13, fontWeight: "700" }}>Delete</Text>
-                  </Pressable>
-                </View>
-              </Card>
-            ))}
+                </Card>
+              ))
+            )}
           </View>
         </Screen>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
-
-const styles = {
-  actionButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6
-  },
-  actionButtonText: {
-    color: "#ffffff",
-    fontSize: 13,
-    fontWeight: "700" as const
-  },
-  deleteButton: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: colors.warning
-  }
-};

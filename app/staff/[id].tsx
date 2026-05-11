@@ -4,8 +4,8 @@ import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-na
 
 import { getStaffById, updateStaff } from "@/db/database";
 import type { StaffMember, StaffRole } from "@/db/types";
-import { Field, PrimaryButton, Screen, SecondaryButton } from "@/ui/components";
-import { colors } from "@/ui/theme";
+import { Card, ChipGroup, Field, PrimaryButton, Screen, ScreenLoader, SecondaryButton } from "@/ui/components";
+import { colors, fontSize } from "@/ui/theme";
 
 const roles: StaffRole[] = ["manager", "cashier", "inventory"];
 
@@ -48,20 +48,14 @@ export default function StaffEditScreen() {
   }
 
   if (loading) {
-    return (
-      <Screen>
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <Text style={{ color: colors.muted }}>Loading...</Text>
-        </View>
-      </Screen>
-    );
+    return <ScreenLoader message="Loading staff member" />;
   }
 
   if (!member) {
     return (
       <Screen>
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <Text style={{ color: colors.muted }}>Staff not found</Text>
+          <Text style={{ color: colors.muted, fontSize: fontSize.lg }}>Staff not found</Text>
         </View>
       </Screen>
     );
@@ -71,30 +65,18 @@ export default function StaffEditScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         <Screen>
-          <Field label="Staff name" onChangeText={setName} placeholder="Staff name" value={name} />
-          <Text style={{ color: colors.ink, fontSize: 13, fontWeight: "700", marginTop: 8 }}>Role</Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {roles.map((item) => (
-              <Text
-                key={item}
-                onPress={() => setRole(item)}
-                style={{
-                  backgroundColor: role === item ? colors.primary : "#ffffff",
-                  borderColor: role === item ? colors.primary : colors.border,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  color: role === item ? "#ffffff" : colors.ink,
-                  fontWeight: "800",
-                  paddingHorizontal: 10,
-                  paddingVertical: 8,
-                  textTransform: "capitalize"
-                }}
-              >
-                {item}
-              </Text>
-            ))}
-          </View>
-          <Field keyboardType="number-pad" label="PIN" onChangeText={setPin} placeholder="4-6 digit PIN" secureTextEntry value={pin} />
+          <Card>
+            <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900", marginBottom: 4 }}>Edit Staff</Text>
+            <Field label="Staff name" onChangeText={setName} placeholder="Staff name" value={name} />
+            <Text style={{ color: colors.ink, fontSize: fontSize.base, fontWeight: "700", marginTop: 8 }}>Role</Text>
+            <ChipGroup
+              items={roles}
+              selected={role}
+              onSelect={setRole}
+              labelFn={(r) => r.charAt(0).toUpperCase() + r.slice(1)}
+            />
+            <Field keyboardType="number-pad" label="PIN" onChangeText={setPin} placeholder="4-6 digit PIN" secureTextEntry value={pin} />
+          </Card>
 
           <PrimaryButton disabled={!canSave} onPress={handleSave} title="Save changes" />
           <SecondaryButton onPress={() => router.back()} title="Cancel" />

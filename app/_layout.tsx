@@ -1,13 +1,12 @@
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
 import "react-native-gesture-handler";
 
-import { initializeDatabase } from "@/db/database";
-import { getBusiness } from "@/db/database";
-import { useSession, initializeSession } from "@/auth/session";
+import { initializeDatabase, getBusiness } from "@/db/database";
+import { useSession } from "@/auth/session";
 import { colors } from "@/ui/theme";
+import { ScreenLoader } from "@/ui/components";
 
 function useAuth() {
   const [ready, setReady] = useState(false);
@@ -54,18 +53,21 @@ export default function RootLayout() {
   }, [ready, business, staffId, loading, segments]);
 
   if (!ready || loading) {
-    return (
-      <View style={{ alignItems: "center", backgroundColor: colors.background, flex: 1, gap: 12, justifyContent: "center" }}>
-        <ActivityIndicator color={colors.primary} />
-        <Text style={{ color: colors.muted, fontWeight: "700" }}>Preparing local records</Text>
-      </View>
-    );
+    return <ScreenLoader message="Preparing local records" />;
   }
 
   return (
     <>
       <StatusBar style="dark" />
-      <Stack screenOptions={{ headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.ink }}>
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.ink,
+          headerTitleStyle: { fontWeight: "800" },
+          headerBackTitleVisible: false,
+          headerShadowVisible: false
+        }}
+      >
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

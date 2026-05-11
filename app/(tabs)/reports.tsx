@@ -2,7 +2,7 @@ import { useIsFocused } from "@react-navigation/native";
 import { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { BarChart, PieChart } from "react-native-chart-kit";
-import { Dimensions } from "react-native";
+import { useWindowDimensions } from "react-native";
 
 import {
   getPaymentBreakdown,
@@ -14,10 +14,8 @@ import {
 } from "@/db/database";
 import type { DailyRevenue, PaymentBreakdown, StaffStats, TopProduct } from "@/db/types";
 import { formatMoney } from "@/lib/money";
-import { Card, Screen } from "@/ui/components";
-import { colors } from "@/ui/theme";
-
-const screenWidth = Dimensions.get("window").width;
+import { Card, Chip, EmptyState, Screen, Stat } from "@/ui/components";
+import { colors, fontSize, radius } from "@/ui/theme";
 
 type Period = "today" | "week" | "month";
 
@@ -43,6 +41,7 @@ function getDateRange(period: Period): { start: string; end: string } {
 
 export default function ReportsScreen() {
   const isFocused = useIsFocused();
+  const { width: screenWidth } = useWindowDimensions();
   const [period, setPeriod] = useState<Period>("today");
   const [revenueData, setRevenueData] = useState<DailyRevenue[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
@@ -86,12 +85,12 @@ export default function ReportsScreen() {
     decimalPlaces: 0,
     color: (opacity = 1) => `rgba(15, 118, 110, ${opacity})`,
     labelColor: () => colors.ink,
-    style: { borderRadius: 8 },
+    style: { borderRadius: radius.md },
     propsForBackgroundLines: { strokeDasharray: "", stroke: colors.border }
   };
 
   const revenueChartData = revenueData.length > 0
-    ? revenueData.slice(-7).map((d, i) => ({
+    ? revenueData.slice(-7).map((d) => ({
         label: new Date(d.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
         value: d.total
       }))
@@ -104,64 +103,46 @@ export default function ReportsScreen() {
     legendFontColor: colors.ink
   }));
 
+  const chartWidth = screenWidth - 80;
+
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
       <Screen>
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
           {(["today", "week", "month"] as Period[]).map((p) => (
-            <Text
+            <Chip
               key={p}
+              label={p.charAt(0).toUpperCase() + p.slice(1)}
               onPress={() => setPeriod(p)}
-              style={{
-                backgroundColor: period === p ? colors.primary : colors.panel,
-                borderColor: period === p ? colors.primary : colors.border,
-                borderRadius: 8,
-                borderWidth: 1,
-                color: period === p ? "#ffffff" : colors.ink,
-                fontWeight: "700",
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                textTransform: "capitalize"
-              }}
-            >
-              {p}
-            </Text>
+              selected={period === p}
+            />
           ))}
         </View>
 
-        <View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap" }}>
-          <Card>
-            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "700" }}>Revenue</Text>
-            <Text style={{ color: colors.ink, fontSize: 24, fontWeight: "900" }}>{formatMoney(totalRevenue, "GHS")}</Text>
-          </Card>
-          <Card>
-            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "700" }}>Transactions</Text>
-            <Text style={{ color: colors.ink, fontSize: 24, fontWeight: "900" }}>{salesCount}</Text>
-          </Card>
-          <Card>
-            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "700" }}>Avg. Sale</Text>
-            <Text style={{ color: colors.ink, fontSize: 24, fontWeight: "900" }}>{formatMoney(avgSale, "GHS")}</Text>
-          </Card>
-          <Card>
-            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "700" }}>Products Sold</Text>
-            <Text style={{ color: colors.ink, fontSize: 24, fontWeight: "900" }}>
-              {topProducts.reduce((sum, p) => sum + p.quantitySold, 0)}
-            </Text>
-          </Card>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <Stat label="Revenue" value={formatMoney(totalRevenue, "GHS")} tone="success" />
+          <Stat label="Transactions" value={String(salesCount)} />
+        </View>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <Stat label="Avg. Sale" value={formatMoney(avgSale, "GHS")} />
+          <Stat
+            label="Products Sold"
+            value={String(topProducts.reduce((sum, p) => sum + p.quantitySold, 0))}
+          />
         </View>
 
         {revenueChartData.length > 0 && revenueChartData[0].value > 0 && (
           <Card>
-            <Text style={{ color: colors.ink, fontSize: 18, fontWeight: "900", marginBottom: 12 }}>Revenue</Text>
+            <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900", marginBottom: 12 }}>Revenue</Text>
             <BarChart
               data={{
                 labels: revenueChartData.map(d => d.label),
                 datasets: [{ data: revenueChartData.map(d => d.value) }]
               }}
-              width={screenWidth - 80}
+              width={chartWidth}
               height={200}
               chartConfig={chartConfig}
-              style={{ marginLeft: -8 }}
+              style={{ marginLeft: -8, borderRadius: radius.md }}
               yAxisLabel="GHS "
               yAxisSuffix=""
             />
@@ -170,10 +151,10 @@ export default function ReportsScreen() {
 
         {pieData.length > 0 && pieData.some(p => p.population > 0) && (
           <Card>
-            <Text style={{ color: colors.ink, fontSize: 18, fontWeight: "900", marginBottom: 12 }}>Payments</Text>
+            <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900", marginBottom: 12 }}>Payments</Text>
             <PieChart
               data={pieData}
-              width={screenWidth - 80}
+              width={chartWidth}
               height={180}
               chartConfig={chartConfig}
               accessor="population"
@@ -183,25 +164,31 @@ export default function ReportsScreen() {
           </Card>
         )}
 
-        {topProducts.length > 0 && (
+        {topProducts.length > 0 ? (
           <Card>
-            <Text style={{ color: colors.ink, fontSize: 18, fontWeight: "900", marginBottom: 12 }}>Top Products</Text>
+            <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900", marginBottom: 12 }}>Top Products</Text>
             {topProducts.map((p, i) => (
-              <View key={p.id} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 4 }}>
-                <Text style={{ color: colors.ink }}>{i + 1}. {p.name}</Text>
-                <Text style={{ color: colors.muted }}>{p.quantitySold} sold</Text>
+              <View key={p.id} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 6, borderBottomWidth: i < topProducts.length - 1 ? 1 : 0, borderBottomColor: colors.border }}>
+                <Text style={{ color: colors.ink, fontWeight: "700" }}>{i + 1}. {p.name}</Text>
+                <Text style={{ color: colors.muted, fontWeight: "600" }}>{p.quantitySold} sold</Text>
               </View>
             ))}
           </Card>
+        ) : (
+          <EmptyState
+            icon="trophy-outline"
+            title="No product data"
+            subtitle={`No products sold ${period === "today" ? "today" : `this ${period}`}.`}
+          />
         )}
 
         {staffStats.length > 0 && (
           <Card>
-            <Text style={{ color: colors.ink, fontSize: 18, fontWeight: "900", marginBottom: 12 }}>Staff Performance</Text>
-            {staffStats.map((s) => (
-              <View key={s.staffId} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 4 }}>
-                <Text style={{ color: colors.ink }}>{s.staffName}</Text>
-                <Text style={{ color: colors.muted }}>{s.salesCount} sales | {formatMoney(s.totalRevenue, "GHS")}</Text>
+            <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900", marginBottom: 12 }}>Staff Performance</Text>
+            {staffStats.map((s, i) => (
+              <View key={s.staffId} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 6, borderBottomWidth: i < staffStats.length - 1 ? 1 : 0, borderBottomColor: colors.border }}>
+                <Text style={{ color: colors.ink, fontWeight: "700" }}>{s.staffName}</Text>
+                <Text style={{ color: colors.muted, fontWeight: "600" }}>{s.salesCount} sales | {formatMoney(s.totalRevenue, "GHS")}</Text>
               </View>
             ))}
           </Card>

@@ -4,15 +4,15 @@ import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-na
 
 import { getBusiness, saveBusiness } from "@/db/database";
 import { Business } from "@/db/types";
-import { Card, Field, PrimaryButton, Screen } from "@/ui/components";
-import { colors } from "@/ui/theme";
+import { Card, ChipGroup, Field, PrimaryButton, Screen } from "@/ui/components";
+import { colors, fontSize } from "@/ui/theme";
 
-const categories = ["Retail shop", "Provision store", "Pharmacy", "Food vendor", "Boutique", "Spare parts"];
+const categories = ["Retail shop", "Provision store", "Pharmacy", "Food vendor", "Boutique", "Spare parts"] as const;
 
 export default function WelcomeScreen() {
   const [business, setBusiness] = useState<Business | null | undefined>(undefined);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState(categories[0]);
+  const [category, setCategory] = useState<string>(categories[0]);
   const [ownerName, setOwnerName] = useState("");
   const [ownerPin, setOwnerPin] = useState("");
 
@@ -31,35 +31,20 @@ export default function WelcomeScreen() {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         <Screen>
           <View style={{ gap: 8, paddingTop: 36 }}>
-            <Text style={{ color: colors.ink, fontSize: 34, fontWeight: "900", letterSpacing: 0 }}>myERP</Text>
-            <Text style={{ color: colors.muted, fontSize: 16, lineHeight: 23 }}>
+            <Text style={{ color: colors.ink, fontSize: fontSize["4xl"], fontWeight: "900", letterSpacing: 0 }}>myERP</Text>
+            <Text style={{ color: colors.muted, fontSize: fontSize.lg, lineHeight: 23 }}>
               A local-first sales, inventory, staff, payment, and receipt app for small businesses.
             </Text>
           </View>
 
           <Card>
             <Field label="Business name" onChangeText={setName} placeholder="Akosua Mini Mart" value={name} />
-            <Text style={{ color: colors.ink, fontSize: 13, fontWeight: "700" }}>Business category</Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {categories.map((item) => (
-                <Text
-                  key={item}
-                  onPress={() => setCategory(item)}
-                  style={{
-                    backgroundColor: category === item ? colors.primary : "#ffffff",
-                    borderColor: category === item ? colors.primary : colors.border,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    color: category === item ? "#ffffff" : colors.ink,
-                    fontWeight: "800",
-                    paddingHorizontal: 10,
-                    paddingVertical: 8
-                  }}
-                >
-                  {item}
-                </Text>
-              ))}
-            </View>
+            <Text style={{ color: colors.ink, fontSize: fontSize.base, fontWeight: "700" }}>Business category</Text>
+            <ChipGroup
+              items={categories}
+              selected={category}
+              onSelect={setCategory}
+            />
             <Field label="Owner name" onChangeText={setOwnerName} placeholder="Owner or manager" value={ownerName} />
             <Field
               keyboardType="number-pad"
