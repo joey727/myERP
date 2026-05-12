@@ -172,6 +172,4 @@ Found a bug or have a feature request?
 
 License: MIT
 
----
 
-*Built with love for Ghanaian small businesses*
