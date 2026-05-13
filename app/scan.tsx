@@ -1,5 +1,5 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
 
@@ -7,6 +7,7 @@ import { PrimaryButton, Screen, ScreenLoader } from "@/ui/components";
 import { colors, fontSize, radius } from "@/ui/theme";
 
 export default function ScanScreen() {
+  const { target } = useLocalSearchParams<{ target?: string }>();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
 
@@ -39,7 +40,8 @@ export default function ScanScreen() {
             ? undefined
             : ({ data }) => {
                 setScanned(true);
-                router.replace({ pathname: "/(tabs)/inventory", params: { barcode: data } });
+                const pathname = target === "sales" ? "/(tabs)/sales" : "/(tabs)/inventory";
+                router.replace({ pathname, params: { barcode: data } });
               }
         }
         style={{ flex: 1 }}

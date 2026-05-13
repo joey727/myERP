@@ -4,6 +4,12 @@
     "slug": "myerp",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "scheme": "myerp",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -12,8 +18,7 @@
       "bundleIdentifier": "com.myerp.app",
       "infoPlist": {
         "NSCameraUsageDescription": "myERP uses the camera to scan product barcodes."
-      },
-      "developmentTeam": "KK5297J8DN"
+      }
     },
     "android": {
       "package": "com.myerp.app",

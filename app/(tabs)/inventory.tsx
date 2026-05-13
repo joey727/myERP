@@ -89,7 +89,7 @@ export default function InventoryScreen() {
                 <Field label="Barcode" onChangeText={setBarcode} placeholder="Scan or type" value={barcode} />
               </View>
               <View style={{ justifyContent: "flex-end", width: 96 }}>
-                <SecondaryButton onPress={() => router.push("/scan")} title="Scan" />
+                <SecondaryButton onPress={() => router.push({ pathname: "/scan", params: { target: "inventory" } })} title="Scan" />
               </View>
             </View>
             <View style={{ flexDirection: "row", gap: 10 }}>

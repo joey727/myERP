@@ -660,25 +660,7 @@ export async function getOrCreateCustomer(phone: string, name?: string): Promise
   return customerFromRow(newCustomer!);
 }
 
-export async function updateCustomerStats(phone: string, amount: number) {
-  const db = await database();
-  await db.runAsync(
-    "UPDATE customers SET total_spent = total_spent + ?, visit_count = visit_count + 1 WHERE phone = ?",
-    amount,
-    phone
-  );
-}
 
-export async function searchCustomers(query: string): Promise<Customer[]> {
-  const db = await database();
-  const searchTerm = `%${query}%`;
-  const rows = await db.getAllAsync<Record<string, unknown>>(
-    "SELECT * FROM customers WHERE phone LIKE ? OR name LIKE ? ORDER BY total_spent DESC LIMIT 10",
-    searchTerm,
-    searchTerm
-  );
-  return rows.map(customerFromRow);
-}
 
 export async function listAllCustomers(): Promise<Customer[]> {
   const db = await database();

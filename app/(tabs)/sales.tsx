@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -33,6 +33,7 @@ type CartItem = {
 
 export default function SalesScreen() {
   const isFocused = useIsFocused();
+  const params = useLocalSearchParams<{ barcode?: string }>();
   const { width: screenWidth } = useWindowDimensions();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -49,6 +50,18 @@ export default function SalesScreen() {
       listProducts().then((p) => {
         setProducts(p);
         setFilteredProducts(p);
+        
+        if (params.barcode) {
+          const found = p.find(item => item.barcode === params.barcode);
+          if (found) {
+            addToCart(found);
+            // Clear the param so it doesn't keep adding on re-focus
+            router.setParams({ barcode: undefined });
+          } else {
+            Alert.alert("Not found", `No product found with barcode ${params.barcode}`);
+            router.setParams({ barcode: undefined });
+          }
+        }
       });
       listStaff().then((members) => {
         setStaff(members);
@@ -57,7 +70,7 @@ export default function SalesScreen() {
         );
       });
     }
-  }, [isFocused]);
+  }, [isFocused, params.barcode]);
 
   useEffect(() => {
     let filtered = products;
@@ -92,6 +105,10 @@ export default function SalesScreen() {
   const productCardWidth = (screenWidth - 40 - gap * (columnCount - 1)) / columnCount;
 
   function addToCart(product: Product) {
+    if (product.stock <= 0) {
+      Alert.alert("Out of stock", `${product.name} is out of stock.`);
+      return;
+    }
     const existing = cart.find((item) => item.product.id === product.id);
     if (existing) {
       setCart((current) =>
@@ -141,7 +158,7 @@ export default function SalesScreen() {
               value={searchQuery}
             />
             <Pressable
-              onPress={() => router.push("/scan")}
+              onPress={() => router.push({ pathname: "/scan", params: { target: "sales" } })}
               style={({ pressed }) => [styles.scanButton, pressed && { backgroundColor: colors.primaryDark }]}
             >
               <Ionicons color="#ffffff" name="scan-outline" size={20} />

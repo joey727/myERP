@@ -41,10 +41,7 @@ export const fontSize = {
   "4xl": 34,
 };
 
-export const spacing = {
-  page: 20,
-  card: 14,
-};
+
 
 export const shadow = {
   sm: {

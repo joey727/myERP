@@ -64,7 +64,7 @@ export default function RootLayout() {
           headerStyle: { backgroundColor: colors.background },
           headerTintColor: colors.ink,
           headerTitleStyle: { fontWeight: "800" },
-          headerBackTitleVisible: false,
+          headerBackTitle: "",
           headerShadowVisible: false
         }}
       >

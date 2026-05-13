@@ -12,7 +12,7 @@ export default function LoginScreen() {
   const [error, setError] = useState(false);
 
   const handleNumberPress = async (num: string) => {
-    if (pin.length >= 6) return;
+    if (pin.length >= 4) return;
     const newPin = pin + num;
     setPin(newPin);
     setError(false);
@@ -46,7 +46,7 @@ export default function LoginScreen() {
       </View>
 
       <View style={{ flexDirection: "row", gap: 16 }}>
-        {[0, 1, 2, 3, 4, 5].map((i) => (
+        {[0, 1, 2, 3].map((i) => (
           <View
             key={i}
             style={[
