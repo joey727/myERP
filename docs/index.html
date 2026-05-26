@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>myERP - Premium App Installers</title>
+  <meta name="description" content="Download and install myERP for iOS and Android. Simple, offline-first ERP & POS for small businesses in Ghana.">
+  
+  <!-- Premium Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Modern CSS Reset & Variable Design System */
+    :root {
+      --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --bg-dark: #070913;
+      --bg-card: rgba(17, 20, 38, 0.6);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      
+      /* Vibrant Tailored HSL Colors */
+      --cyan-primary: hsl(186, 100%, 48%);
+      --cyan-glow: hsla(186, 100%, 48%, 0.15);
+      --emerald-primary: hsl(152, 90%, 44%);
+      --emerald-glow: hsla(152, 90%, 44%, 0.15);
+      --violet-primary: hsl(263, 90%, 60%);
+      --violet-glow: hsla(263, 90%, 60%, 0.2);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-dark);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      overflow-x: hidden;
+      position: relative;
+    }
+    
+    /* Glowing Ambient Blobs */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    
+    .blob-cyan {
+      width: 300px;
+      height: 300px;
+      background: var(--cyan-primary);
+      top: -10%;
+      left: -10%;
+    }
+    
+    .blob-violet {
+      width: 400px;
+      height: 400px;
+      background: var(--violet-primary);
+      bottom: -10%;
+      right: -10%;
+    }
+    
+    /* Main Layout */
+    .container {
+      width: 100%;
+      max-width: 580px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      position: relative;
+    }
+    
+    /* Header Branding */
+    header {
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    
+    .logo-container {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    
+    .logo-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--cyan-primary), var(--violet-primary));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(186, 0, 255, 0.2);
+    }
+    
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      background: linear-gradient(135deg, #ffffff 30%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      font-weight: 400;
+      max-width: 400px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+    
+    /* Premium Glassmorphic Card */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 2.25rem 2rem;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    
+    /* Badges & Status */
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 1.25rem;
+    }
+    
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.375rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    
+    .badge-version {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+    }
+    
+    .badge-status {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: #34d399;
+    }
+    
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      background-color: #34d399;
+      border-radius: 50%;
+      animation: pulse 1.8s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.6; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.6; }
+    }
+    
+    /* Action Section - Installers */
+    .installers-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    
+    .installer-box {
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 16px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .installer-box:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      transform: translateY(-2px);
+    }
+    
+    .installer-info {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+    }
+    
+    .platform-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .installer-text h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .installer-text p {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 0.125rem;
+    }
+    
+    /* Modern Premium Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.625rem;
+      width: 100%;
+      padding: 0.875rem;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      border: none;
+    }
+    
+    .btn-ios {
+      background: linear-gradient(135deg, var(--cyan-primary), #0284c7);
+      color: #070913;
+      box-shadow: 0 4px 20px var(--cyan-glow);
+    }
+    
+    .btn-ios:hover {
+      box-shadow: 0 8px 30px hsla(186, 100%, 48%, 0.35);
+      transform: scale(1.01);
+    }
+    
+    .btn-android {
+      background: linear-gradient(135deg, var(--emerald-primary), #059669);
+      color: #070913;
+      box-shadow: 0 4px 20px var(--emerald-glow);
+    }
+    
+    .btn-android:hover {
+      box-shadow: 0 8px 30px hsla(152, 90%, 44%, 0.35);
+      transform: scale(1.01);
+    }
+    
+    /* Guides / Accordions */
+    .guides-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .section-title {
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    
+    .accordion {
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.01);
+      transition: border-color 0.2s;
+    }
+    
+    .accordion-header {
+      padding: 1rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s;
+    }
+    
+    .accordion-header:hover {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+    
+    .accordion-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .accordion-icon {
+      width: 18px;
+      height: 18px;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      fill: none;
+      stroke: var(--text-secondary);
+      stroke-width: 2.5;
+    }
+    
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      background: rgba(0, 0, 0, 0.15);
+      border-top: 0 solid var(--border-color);
+    }
+    
+    .accordion.active {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    
+    .accordion.active .accordion-header {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+    
+    .accordion.active .accordion-icon {
+      transform: rotate(180deg);
+      stroke: var(--text-primary);
+    }
+    
+    .accordion.active .accordion-content {
+      max-height: 350px;
+      opacity: 1;
+      padding: 1.25rem;
+      border-top: 1px solid var(--border-color);
+    }
+    
+    /* Guide Checklist Items */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .step-item {
+      display: flex;
+      gap: 0.75rem;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: var(--text-secondary);
+    }
+    
+    .step-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    
+    .step-text strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    
+    /* Footer branding */
+    footer {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+    }
+    
+    footer a {
+      color: var(--text-primary);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      transition: border-color 0.2s;
+    }
+    
+    footer a:hover {
+      border-color: var(--text-primary);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient background glow elements -->
+  <div class="blob blob-cyan"></div>
+  <div class="blob blob-violet"></div>
+
+  <div class="container">
+    
+    <!-- Branding Header -->
+    <header>
+      <div class="logo-container">
+        <div class="logo-icon">
+          <!-- Logo Symbol: Sleek Geometric POS Terminal representation -->
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V5C21 3.89543 20.1046 3 19 3Z" stroke="#070913" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 7H17" stroke="#070913" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 11H13" stroke="#070913" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 15H9" stroke="#070913" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M13 15H17" stroke="#070913" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h1>myERP</h1>
+      </div>
+      <p class="subtitle">Offline-First Point of Sale & ERP for Small Businesses in Ghana</p>
+    </header>
+
+    <!-- Main Installer Glassmorphic Card -->
+    <main class="card">
+      
+      <!-- Release Info Row -->
+      <div class="status-row">
+        <span class="badge badge-version">v1.1.0 Release</span>
+        <span class="badge badge-status">
+          <span class="pulse-dot"></span>
+          Ready to Install
+        </span>
+      </div>
+
+      <!-- Action Buttons Grid -->
+      <div class="installers-grid">
+        
+        <!-- iOS Installer Container -->
+        <div class="installer-box">
+          <div class="installer-info">
+            <div class="platform-icon">
+              <!-- Apple SVG -->
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 22 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 22C7.79 22.05 6.8 20.68 5.96 19.48C4.25 17 2.94 12.45 4.7 9.39C5.57 7.87 7.13 6.91 8.82 6.88C10.1 6.86 11.32 7.75 12.11 7.75C12.89 7.75 14.37 6.68 15.92 6.84C16.57 6.87 18.39 7.1 19.56 8.82C19.47 8.88 17.39 10.1 17.41 12.63C17.44 15.65 20.06 16.66 20.1 16.67C20.08 16.74 19.67 18.11 18.71 19.5ZM15.97 4.17C16.63 3.37 17.07 2.28 16.95 1C15.85 1.04 14.51 1.73 13.73 2.64C13.07 3.41 12.49 4.52 12.64 5.78C13.87 5.87 15.12 5.17 15.97 4.17Z"/>
+              </svg>
+            </div>
+            <div class="installer-text">
+              <h3>iOS Installer</h3>
+              <p>Supports iPhone & iPad • Requires Ad Hoc profile trust</p>
+            </div>
+          </div>
+          <a href="itms-services://?action=download-manifest&url=https://raw.githubusercontent.com/joey727/myERP/main/docs/manifest.plist" class="btn btn-ios">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Install on iOS Device
+          </a>
+        </div>
+
+        <!-- Android Installer Container -->
+        <div class="installer-box">
+          <div class="installer-info">
+            <div class="platform-icon">
+              <!-- Android SVG -->
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17.523 15.3414C17.0396 15.3414 16.6477 14.9496 16.6477 14.4661C16.6477 13.9827 17.0396 13.5908 17.523 13.5908C18.0065 13.5908 18.3983 13.9827 18.3983 14.4661C18.3983 14.9496 18.0065 15.3414 17.523 15.3414ZM6.47702 15.3414C5.99356 15.3414 5.60171 14.9496 5.60171 14.4661C5.60171 13.9827 5.99356 13.5908 6.47702 13.5908C6.96048 13.5908 7.35233 13.9827 7.35233 14.4661C7.35233 14.9496 6.96048 15.3414 6.47702 15.3414ZM17.9254 10.3703L19.7828 7.15317C19.9238 6.90906 19.8398 6.5986 19.5957 6.45761C19.3516 6.31662 19.0411 6.4006 18.9001 6.64472L17.0142 9.91104C15.5446 9.23933 13.8569 8.8683 12 8.8683C10.1431 8.8683 8.45542 9.23933 6.98583 9.91104L5.09989 6.64472C4.9589 6.4006 4.64844 6.31662 4.40433 6.45761C4.16022 6.5986 4.07624 6.90906 4.21723 7.15317L6.07459 10.3703C2.86851 12.1066 0.697405 15.3359 0.505859 19.167H23.4941C23.3026 15.3359 21.1315 12.1066 17.9254 10.3703Z"/>
+              </svg>
+            </div>
+            <div class="installer-text">
+              <h3>Android Installer</h3>
+              <p>Supports all Android Devices • Signed Release APK</p>
+            </div>
+          </div>
+          <a href="https://github.com/joey727/myERP/releases/download/v1.1.0/myERP.apk" class="btn btn-android">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download Android APK
+          </a>
+        </div>
+
+      </div>
+
+      <!-- Installation Guides (Interactive Accordions) -->
+      <div class="guides-section">
+        <h2 class="section-title">How to Install</h2>
+
+        <!-- iOS Accordion -->
+        <div class="accordion" id="ios-accordion">
+          <div class="accordion-header" onclick="toggleAccordion('ios-accordion')">
+            <span class="accordion-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke: var(--cyan-primary);">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              iOS Installation Steps
+            </span>
+            <svg class="accordion-icon" viewBox="0 0 24 24">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div class="accordion-content">
+            <div class="steps">
+              <div class="step-item">
+                <span class="step-num">1</span>
+                <span class="step-text">Tap the <strong>"Install on iOS Device"</strong> button above in Safari browser.</span>
+              </div>
+              <div class="step-item">
+                <span class="step-num">2</span>
+                <span class="step-text">A system alert will ask if you want to install myERP. Click <strong>Install</strong> and check your Home Screen for the loading app.</span>
+              </div>
+              <div class="step-item">
+                <span class="step-num">3</span>
+                <span class="step-text">If you see an "Untrusted Developer" dialog when opening the app, go to <strong>Settings -> General -> VPN & Device Management</strong>.</span>
+              </div>
+              <div class="step-item">
+                <span class="step-num">4</span>
+                <span class="step-text">Tap on your Enterprise or Ad Hoc developer profile (under "Developer App" or "Enterprise App") and tap <strong>Trust</strong>.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Android Accordion -->
+        <div class="accordion" id="android-accordion">
+          <div class="accordion-header" onclick="toggleAccordion('android-accordion')">
+            <span class="accordion-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke: var(--emerald-primary);">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              Android Sideloading Steps
+            </span>
+            <svg class="accordion-icon" viewBox="0 0 24 24">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div class="accordion-content">
+            <div class="steps">
+              <div class="step-item">
+                <span class="step-num">1</span>
+                <span class="step-text">Tap the <strong>"Download Android APK"</strong> button above.</span>
+              </div>
+              <div class="step-item">
+                <span class="step-num">2</span>
+                <span class="step-text">If prompted by your browser, tap <strong>"Download Anyway"</strong> to save the `.apk` file.</span>
+              </div>
+              <div class="step-item">
+                <span class="step-num">3</span>
+                <span class="step-text">Once downloaded, open the file from your downloads list. If you get a warning about installing unknown apps, tap <strong>Settings</strong>.</span>
+              </div>
+              <div class="step-item">
+                <span class="step-num">4</span>
+                <span class="step-text">Toggle <strong>"Allow from this source"</strong> on, then return and tap <strong>Install</strong>.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- Footer Information -->
+    <footer>
+      <p>© 2026 myERP Ghanaian POS & Business Management. Built with Expo & SQLite.</p>
+      <p style="margin-top: 0.25rem;">Need help? Visit the <a href="https://github.com/joey727/myERP" target="_blank" rel="noopener">GitHub Repository</a></p>
+    </footer>
+
+  </div>
+
+  <script>
+    // Premium Accordion Collapse/Expand Logic
+    function toggleAccordion(id) {
+      const el = document.getElementById(id);
+      const content = el.querySelector('.accordion-content');
+      const isActive = el.classList.contains('active');
+      
+      // Close all accordions first for clean interaction
+      document.querySelectorAll('.accordion').forEach(acc => {
+        acc.classList.remove('active');
+        acc.querySelector('.accordion-content').style.maxHeight = '0px';
+        acc.querySelector('.accordion-content').style.opacity = '0';
+      });
+      
+      // If the clicked accordion wasn't already active, open it
+      if (!isActive) {
+        el.classList.add('active');
+        content.style.maxHeight = content.scrollHeight + 40 + 'px'; // add cushioning for padding
+        content.style.opacity = '1';
+      }
+    }
+    
+    // Smoothly auto-open the guide based on OS
+    window.addEventListener('DOMContentLoaded', () => {
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+        toggleAccordion('ios-accordion');
+      } else if (/android/i.test(userAgent)) {
+        toggleAccordion('android-accordion');
+      }
+    });
+  </script>
+</body>
+</html>
