@@ -280,6 +280,17 @@
       box-shadow: 0 8px 30px hsla(152, 90%, 44%, 0.35);
       transform: scale(1.01);
     }
+
+    .btn-web {
+      background: linear-gradient(135deg, var(--violet-primary), #d946ef);
+      color: #f8fafc;
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.25);
+    }
+    
+    .btn-web:hover {
+      box-shadow: 0 8px 30px rgba(139, 92, 246, 0.45);
+      transform: scale(1.01);
+    }
     
     /* Guides / Accordions */
     .guides-section {
@@ -462,6 +473,32 @@
       <!-- Action Buttons Grid -->
       <div class="installers-grid">
         
+        <!-- Web App PWA Container -->
+        <div class="installer-box" style="border-color: rgba(139, 92, 246, 0.2); background: rgba(139, 92, 246, 0.02);">
+          <div class="installer-info">
+            <div class="platform-icon" style="background: rgba(139, 92, 246, 0.1);">
+              <!-- Globe SVG -->
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--violet-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+            </div>
+            <div class="installer-text">
+              <h3>Web App Version (Instant PWA)</h3>
+              <p>Highly Recommended for iOS • Zero Cost • No Apple Account required</p>
+            </div>
+          </div>
+          <a href="./app/" class="btn btn-web">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+            Launch myERP Web App
+          </a>
+        </div>
+
         <!-- iOS Installer Container -->
         <div class="installer-box">
           <div class="installer-info">
@@ -472,7 +509,7 @@
               </svg>
             </div>
             <div class="installer-text">
-              <h3>iOS Installer</h3>
+              <h3>iOS Native Installer</h3>
               <p>Supports iPhone & iPad • Requires Ad Hoc profile trust</p>
             </div>
           </div>
@@ -482,7 +519,7 @@
               <polyline points="7 10 12 15 17 10"/>
               <line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
-            Install on iOS Device
+            Install Native iOS App
           </a>
         </div>
 
@@ -516,6 +553,43 @@
       <div class="guides-section">
         <h2 class="section-title">How to Install</h2>
 
+        <!-- Web App / PWA Accordion -->
+        <div class="accordion" id="web-accordion">
+          <div class="accordion-header" onclick="toggleAccordion('web-accordion')">
+            <span class="accordion-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke: var(--violet-primary);">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              Web App / PWA Steps (Add to Home Screen)
+            </span>
+            <svg class="accordion-icon" viewBox="0 0 24 24">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div class="accordion-content">
+            <div class="steps">
+              <div class="step-item">
+                <span class="step-num">1</span>
+                <span class="step-text">Tap the <strong>"Launch myERP Web App"</strong> button above.</span>
+              </div>
+              <div class="step-item">
+                <span class="step-num">2</span>
+                <span class="step-text">Once the web app loads, tap the browser's <strong>Share</strong> button (iOS Safari) or the **Menu** button (Android Chrome).</span>
+              </div>
+              <div class="step-item">
+                <span class="step-num">3</span>
+                <span class="step-text">Select <strong>"Add to Home Screen"</strong> from the options.</span>
+              </div>
+              <div class="step-item">
+                <span class="step-num">4</span>
+                <span class="step-text">Launch myERP directly from your Home Screen for a standalone, full-screen, offline-capable experience!</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- iOS Accordion -->
         <div class="accordion" id="ios-accordion">
           <div class="accordion-header" onclick="toggleAccordion('ios-accordion')">
@@ -525,7 +599,7 @@
                 <line x1="12" y1="16" x2="12" y2="12"/>
                 <line x1="12" y1="8" x2="12.01" y2="8"/>
               </svg>
-              iOS Installation Steps
+              iOS Native Installation Steps
             </span>
             <svg class="accordion-icon" viewBox="0 0 24 24">
               <polyline points="6 9 12 15 18 9"/>
@@ -628,7 +702,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       const userAgent = navigator.userAgent || navigator.vendor || window.opera;
       if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-        toggleAccordion('ios-accordion');
+        toggleAccordion('web-accordion');
       } else if (/android/i.test(userAgent)) {
         toggleAccordion('android-accordion');
       }
