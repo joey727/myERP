@@ -15,11 +15,26 @@ function useAuth() {
 
   useEffect(() => {
     if (loading) return;
-    initializeDatabase().then(async () => {
-      const b = await getBusiness();
-      setBusiness(b);
+
+    let didTimeout = false;
+    const timeout = setTimeout(() => {
+      didTimeout = true;
+      console.error("Database initialization timed out");
       setReady(true);
-    });
+    }, 10_000);
+
+    initializeDatabase()
+      .then(async () => {
+        if (didTimeout) return;
+        const b = await getBusiness();
+        setBusiness(b);
+        setReady(true);
+      })
+      .catch((err) => {
+        console.error("Database initialization failed:", err);
+        if (!didTimeout) setReady(true);
+      })
+      .finally(() => clearTimeout(timeout));
   }, [loading]);
 
   return { ready, business, staffId, loading };
