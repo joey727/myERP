@@ -27,7 +27,8 @@
       ]
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "baseUrl": "/myERP/app/"
     },
     "plugins": [
       "expo-router",
@@ -40,8 +41,7 @@
       "expo-sqlite"
     ],
     "experiments": {
-      "typedRoutes": true,
-      "baseUrl": "/myERP/app"
+      "typedRoutes": true
     }
   }
 }
