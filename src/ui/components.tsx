@@ -141,7 +141,30 @@ export function Chip({
   );
 }
 
-
+export function ChipGroup<T extends string>({
+  items,
+  selected,
+  onSelect,
+  labelFn
+}: {
+  items: readonly T[];
+  selected: T;
+  onSelect: (item: T) => void;
+  labelFn?: (item: T) => string;
+}) {
+  return (
+    <View style={styles.chipGroup}>
+      {items.map((item) => (
+        <Chip
+          key={item}
+          label={labelFn ? labelFn(item) : item}
+          onPress={() => onSelect(item)}
+          selected={selected === item}
+        />
+      ))}
+    </View>
+  );
+}
 
 export function ScreenLoader({ message = "Loading..." }: { message?: string }) {
   return (
@@ -370,6 +393,11 @@ const styles = StyleSheet.create({
   },
   chipTextSelected: {
     color: "#ffffff"
+  },
+  chipGroup: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
   },
 
   loaderContainer: {

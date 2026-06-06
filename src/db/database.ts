@@ -1,4 +1,5 @@
 import * as SQLite from "expo-sqlite";
+import { Platform } from "react-native";
 
 import type {
   Business,
@@ -26,9 +27,15 @@ function database() {
 export async function initializeDatabase() {
   const db = await database();
 
-  await db.execAsync(`
-    PRAGMA journal_mode = WAL;
+  if (Platform.OS !== "web") {
+    try {
+      await db.execAsync("PRAGMA journal_mode = WAL;");
+    } catch (err) {
+      console.warn("Failed to set journal_mode to WAL:", err);
+    }
+  }
 
+  await db.execAsync(`
     CREATE TABLE IF NOT EXISTS businesses (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,

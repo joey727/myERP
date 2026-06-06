@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AppState, AppStateStatus } from "react-native";
+import { AppState, AppStateStatus, Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
 import { getStaffByPin } from "@/db/database";
@@ -16,9 +16,40 @@ function notifyListeners() {
   listeners.forEach((l) => l(currentStaffId));
 }
 
+async function getSessionId(): Promise<string | null> {
+  if (Platform.OS === "web") {
+    try {
+      return localStorage.getItem(SESSION_KEY);
+    } catch {
+      return null;
+    }
+  }
+  return await SecureStore.getItemAsync(SESSION_KEY);
+}
+
+async function setSessionId(id: string): Promise<void> {
+  if (Platform.OS === "web") {
+    try {
+      localStorage.setItem(SESSION_KEY, id);
+    } catch {}
+    return;
+  }
+  await SecureStore.setItemAsync(SESSION_KEY, id);
+}
+
+async function deleteSessionId(): Promise<void> {
+  if (Platform.OS === "web") {
+    try {
+      localStorage.removeItem(SESSION_KEY);
+    } catch {}
+    return;
+  }
+  await SecureStore.deleteItemAsync(SESSION_KEY);
+}
+
 async function initializeSession(): Promise<StaffMember | null> {
   try {
-    const storedId = await SecureStore.getItemAsync(SESSION_KEY);
+    const storedId = await getSessionId();
     if (storedId) {
       currentStaffId = parseInt(storedId, 10);
       lastActiveTime = Date.now();
@@ -35,17 +66,17 @@ export async function login(pin: string): Promise<StaffMember | null> {
   if (staff && staff.active) {
     currentStaffId = staff.id;
     lastActiveTime = Date.now();
-    await SecureStore.setItemAsync(SESSION_KEY, String(staff.id));
+    await setSessionId(String(staff.id));
     notifyListeners();
     return staff;
   }
   return null;
 }
 
-async function logout(): Promise<void> {
+export async function logout(): Promise<void> {
   currentStaffId = null;
   lastActiveTime = 0;
-  await SecureStore.deleteItemAsync(SESSION_KEY);
+  await deleteSessionId();
   notifyListeners();
 }
 

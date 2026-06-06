@@ -23,7 +23,9 @@
     "android": {
       "package": "com.myerp.app",
       "permissions": [
-        "CAMERA"
+        "CAMERA",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -40,8 +42,14 @@
       "expo-sqlite"
     ],
     "experiments": {
-      "typedRoutes": true,
-      "baseUrl": "/myERP/app"
-    }
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bb7ddc13-1389-4352-97da-18adcaf13d04"
+      }
+    },
+    "owner": "joey727"
   }
 }
