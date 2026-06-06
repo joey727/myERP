@@ -1,12 +1,13 @@
-import { Stack, useRouter, useSegments } from "expo-router";
+import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import "react-native-gesture-handler";
 
 import { initializeDatabase, getBusiness } from "@/db/database";
 import { useSession } from "@/auth/session";
 import { colors } from "@/ui/theme";
-import { ScreenLoader } from "@/ui/components";
+
+// Prevent auto-hide so we control when the splash dismisses
+SplashScreen.preventAutoHideAsync();
 
 function useAuth() {
   const [ready, setReady] = useState(false);
@@ -45,6 +46,13 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
 
+  // Hide the splash screen once initialization is complete
+  useEffect(() => {
+    if (ready && !loading) {
+      SplashScreen.hideAsync();
+    }
+  }, [ready, loading]);
+
   useEffect(() => {
     if (!ready || loading) return;
 
@@ -67,8 +75,9 @@ export default function RootLayout() {
     }
   }, [ready, business, staffId, loading, segments]);
 
+  // Return null while loading — the splash screen stays visible
   if (!ready || loading) {
-    return <ScreenLoader message="Preparing local records" />;
+    return null;
   }
 
   return (
