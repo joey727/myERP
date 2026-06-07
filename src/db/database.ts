@@ -33,7 +33,12 @@ export function subscribeBusinessChange(listener: () => void): () => void {
 }
 
 function database() {
-  databasePromise ??= SQLite.openDatabaseAsync("myerp.db");
+  if (!databasePromise) {
+    databasePromise = SQLite.openDatabaseAsync("myerp.db").catch((err) => {
+      databasePromise = null;
+      throw err;
+    });
+  }
   return databasePromise;
 }
 

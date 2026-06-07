@@ -5,6 +5,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-na
 import { getBusiness, saveBusiness, subscribeBusinessChange } from "@/db/database";
 import { Business } from "@/db/types";
 import { Card, ChipGroup, Field, PrimaryButton, Screen } from "@/ui/components";
+import { notify } from "@/ui/dialog";
 import { colors, fontSize } from "@/ui/theme";
 
 const categories = ["Retail shop", "Provision store", "Pharmacy", "Food vendor", "Boutique", "Spare parts"] as const;
@@ -17,9 +18,9 @@ export default function WelcomeScreen() {
   const [ownerPin, setOwnerPin] = useState("");
 
   useEffect(() => {
-    getBusiness().then(setBusiness);
+    getBusiness().then(setBusiness).catch((err) => console.error("getBusiness failed:", err));
     return subscribeBusinessChange(() => {
-      getBusiness().then(setBusiness);
+      getBusiness().then(setBusiness).catch((err) => console.error("getBusiness failed:", err));
     });
   }, []);
 
@@ -60,14 +61,22 @@ export default function WelcomeScreen() {
             <PrimaryButton
               disabled={!canContinue}
               onPress={async () => {
-                await saveBusiness({
-                  name: name.trim(),
-                  category,
-                  currency: "GHS",
-                  taxRate: 0,
-                  ownerName: ownerName.trim(),
-                  ownerPin: ownerPin.trim()
-                });
+                try {
+                  await saveBusiness({
+                    name: name.trim(),
+                    category,
+                    currency: "GHS",
+                    taxRate: 0,
+                    ownerName: ownerName.trim(),
+                    ownerPin: ownerPin.trim()
+                  });
+                } catch (err) {
+                  console.error("saveBusiness failed:", err);
+                  await notify({
+                    title: "Could not create business",
+                    message: err instanceof Error ? err.message : String(err)
+                  });
+                }
               }}
               title="Create business"
             />
