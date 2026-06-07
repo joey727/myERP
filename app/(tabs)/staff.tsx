@@ -1,11 +1,12 @@
 import { useIsFocused } from "@react-navigation/native";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { addStaff, deleteStaff, listStaff, updateStaff } from "@/db/database";
 import type { StaffMember, StaffRole } from "@/db/types";
 import { ActionButton, Badge, Card, ChipGroup, EmptyState, Field, PrimaryButton, Screen } from "@/ui/components";
+import { confirm } from "@/ui/dialog";
 import { colors, fontSize } from "@/ui/theme";
 
 const roles: StaffRole[] = ["manager", "cashier", "inventory"];
@@ -31,38 +32,32 @@ export default function StaffScreen() {
 
   function handleToggleActive(member: StaffMember) {
     const action = member.active ? "deactivate" : "activate";
-    Alert.alert(
-      `${action === "deactivate" ? "Deactivate" : "Activate"} Staff`,
-      `Are you sure you want to ${action} "${member.name}"?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: action === "deactivate" ? "Deactivate" : "Activate",
-          onPress: async () => {
-            await updateStaff(member.id, { active: !member.active });
-            listStaff().then(setStaff);
-          }
-        }
-      ]
-    );
+    const verb = action === "deactivate" ? "Deactivate" : "Activate";
+    confirm({
+      title: `${verb} Staff`,
+      message: `Are you sure you want to ${action} "${member.name}"?`,
+      confirmText: verb,
+      destructive: action === "deactivate"
+    }).then((ok) => {
+      if (!ok) return;
+      updateStaff(member.id, { active: !member.active }).then(() => {
+        listStaff().then(setStaff);
+      });
+    });
   }
 
   function handleDelete(member: StaffMember) {
-    Alert.alert(
-      "Delete Staff",
-      `Are you sure you want to delete "${member.name}"? This cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            await deleteStaff(member.id);
-            listStaff().then(setStaff);
-          }
-        }
-      ]
-    );
+    confirm({
+      title: "Delete Staff",
+      message: `Are you sure you want to delete "${member.name}"? This cannot be undone.`,
+      confirmText: "Delete",
+      destructive: true
+    }).then((ok) => {
+      if (!ok) return;
+      deleteStaff(member.id).then(() => {
+        listStaff().then(setStaff);
+      });
+    });
   }
 
   return (

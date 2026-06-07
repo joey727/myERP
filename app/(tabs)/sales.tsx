@@ -3,7 +3,6 @@ import { useIsFocused } from "@react-navigation/native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -24,6 +23,7 @@ import {
 import type { PaymentMethod, Product, StaffMember } from "@/db/types";
 import { formatMoney } from "@/lib/money";
 import { Card, Chip, EmptyState, Field, PrimaryButton, Screen } from "@/ui/components";
+import { notify } from "@/ui/dialog";
 import { colors, fontSize, radius, shadow } from "@/ui/theme";
 
 type CartItem = {
@@ -58,7 +58,7 @@ export default function SalesScreen() {
             // Clear the param so it doesn't keep adding on re-focus
             router.setParams({ barcode: undefined });
           } else {
-            Alert.alert("Not found", `No product found with barcode ${params.barcode}`);
+            notify({ title: "Not found", message: `No product found with barcode ${params.barcode}` });
             router.setParams({ barcode: undefined });
           }
         }
@@ -106,7 +106,7 @@ export default function SalesScreen() {
 
   function addToCart(product: Product) {
     if (product.stock <= 0) {
-      Alert.alert("Out of stock", `${product.name} is out of stock.`);
+      notify({ title: "Out of stock", message: `${product.name} is out of stock.` });
       return;
     }
     const existing = cart.find((item) => item.product.id === product.id);
@@ -396,10 +396,10 @@ export default function SalesScreen() {
                   customerPhone.trim().length > 0 &&
                   customerPhone.trim().length < 9
                 ) {
-                  Alert.alert(
-                    "Invalid number",
-                    "Enter a valid 9-digit mobile number.",
-                  );
+                  notify({
+                    title: "Invalid number",
+                    message: "Enter a valid 9-digit mobile number."
+                  });
                   return;
                 }
 

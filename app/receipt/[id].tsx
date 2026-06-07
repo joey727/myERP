@@ -2,16 +2,59 @@ import * as Print from "expo-print";
 import { useLocalSearchParams } from "expo-router";
 import * as Sharing from "expo-sharing";
 import { useEffect, useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { Platform, ScrollView, Text, View } from "react-native";
 
 import { getBusiness, getSaleWithItems } from "@/db/database";
 import type { Business, Sale, SaleItem } from "@/db/types";
 import { formatMoney } from "@/lib/money";
 import { Badge, Card, PrimaryButton, Screen, ScreenLoader, SecondaryButton } from "@/ui/components";
+import { notify } from "@/ui/dialog";
 import { colors, fontSize, radius } from "@/ui/theme";
 
 const thermalReceiptWidth = 226;
 const minimumThermalReceiptHeight = 420;
+
+function printReceiptOnWeb(html: string) {
+  if (typeof document === "undefined") return;
+
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  document.body.appendChild(iframe);
+
+  const cleanup = () => {
+    if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+  };
+
+  iframe.onload = () => {
+    try {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    } finally {
+      setTimeout(cleanup, 1000);
+    }
+  };
+
+  iframe.srcdoc = html;
+}
+
+function downloadReceiptHtml(html: string, filename: string) {
+  if (typeof document === "undefined") return;
+
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+}
 
 function escapeHtml(value: string) {
   return value
@@ -241,9 +284,16 @@ export default function ReceiptScreen() {
     setPrinting(true);
 
     try {
-      await Print.printAsync(receiptPrintOptions);
+      if (Platform.OS === "web") {
+        printReceiptOnWeb(receiptHtml);
+      } else {
+        await Print.printAsync(receiptPrintOptions);
+      }
     } catch (error) {
-      Alert.alert("Receipt not printed", error instanceof Error ? error.message : "The printer could not complete this receipt.");
+      notify({
+        title: "Receipt not printed",
+        message: error instanceof Error ? error.message : "The printer could not complete this receipt."
+      });
     } finally {
       setPrinting(false);
     }
@@ -253,17 +303,28 @@ export default function ReceiptScreen() {
     setSharing(true);
 
     try {
+      if (Platform.OS === "web") {
+        downloadReceiptHtml(receiptHtml, `receipt-${sale.receiptNumber}.html`);
+        return;
+      }
+
       const sharingAvailable = await Sharing.isAvailableAsync();
 
       if (!sharingAvailable) {
-        Alert.alert("Sharing unavailable", "This device cannot share receipt PDFs right now.");
+        notify({
+          title: "Sharing unavailable",
+          message: "This device cannot share receipt PDFs right now."
+        });
         return;
       }
 
       const file = await Print.printToFileAsync(receiptPrintOptions);
       await Sharing.shareAsync(file.uri);
     } catch (error) {
-      Alert.alert("Receipt not shared", error instanceof Error ? error.message : "The receipt PDF could not be created.");
+      notify({
+        title: "Receipt not shared",
+        message: error instanceof Error ? error.message : "The receipt PDF could not be created."
+      });
     } finally {
       setSharing(false);
     }

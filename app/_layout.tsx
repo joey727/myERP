@@ -2,7 +2,7 @@ import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 
-import { initializeDatabase, getBusiness } from "@/db/database";
+import { initializeDatabase, getBusiness, subscribeBusinessChange } from "@/db/database";
 import { useSession } from "@/auth/session";
 import { colors } from "@/ui/theme";
 
@@ -37,6 +37,14 @@ function useAuth() {
       })
       .finally(() => clearTimeout(timeout));
   }, [loading]);
+
+  useEffect(() => {
+    const refresh = async () => {
+      const b = await getBusiness();
+      setBusiness(b);
+    };
+    return subscribeBusinessChange(refresh);
+  }, []);
 
   return { ready, business, staffId, loading };
 }

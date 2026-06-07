@@ -1,0 +1,15 @@
+const fs = require('fs');
+const path = require('path');
+
+const indexPath = process.argv[2];
+const html = fs.readFileSync(indexPath, 'utf8');
+
+const cOI = '<script src="coi-serviceworker.js"></script>';
+if (html.includes(cOI)) {
+  console.log('coi-serviceworker script tag already present');
+  process.exit(0);
+}
+
+const replaced = html.replace('<head>', `<head>\n        ${cOI}`);
+fs.writeFileSync(indexPath, replaced);
+console.log('Injected coi-serviceworker script tag');

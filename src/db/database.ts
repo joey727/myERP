@@ -19,6 +19,19 @@ import type {
 
 let databasePromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
+const businessListeners = new Set<() => void>();
+
+function notifyBusinessChanged() {
+  businessListeners.forEach((listener) => listener());
+}
+
+export function subscribeBusinessChange(listener: () => void): () => void {
+  businessListeners.add(listener);
+  return () => {
+    businessListeners.delete(listener);
+  };
+}
+
 function database() {
   databasePromise ??= SQLite.openDatabaseAsync("myerp.db");
   return databasePromise;
@@ -208,6 +221,8 @@ export async function updateBusiness(input: {
   if (updates.length === 0) return;
 
   await db.runAsync(`UPDATE businesses SET ${updates.join(", ")} WHERE id = ?`, ...values, current.id);
+
+  notifyBusinessChanged();
 }
 
 export async function saveBusiness(input: {
@@ -237,6 +252,8 @@ export async function saveBusiness(input: {
       now
     );
   });
+
+  notifyBusinessChanged();
 }
 
 export async function listProducts() {

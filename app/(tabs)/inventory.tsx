@@ -1,12 +1,13 @@
 import { useIsFocused } from "@react-navigation/native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { deleteProduct, listProducts, searchProducts, upsertProduct } from "@/db/database";
 import type { Product } from "@/db/types";
 import { formatMoney, parseMoney } from "@/lib/money";
 import { ActionButton, Card, EmptyState, Field, PrimaryButton, Screen, SecondaryButton } from "@/ui/components";
+import { confirm } from "@/ui/dialog";
 import { colors, fontSize, radius } from "@/ui/theme";
 
 export default function InventoryScreen() {
@@ -49,21 +50,15 @@ export default function InventoryScreen() {
   }
 
   function handleDelete(product: Product) {
-    Alert.alert(
-      "Delete Product",
-      `Are you sure you want to delete "${product.name}"?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            await deleteProduct(product.id);
-            loadProducts();
-          }
-        }
-      ]
-    );
+    confirm({
+      title: "Delete Product",
+      message: `Are you sure you want to delete "${product.name}"?`,
+      confirmText: "Delete",
+      destructive: true
+    }).then((ok) => {
+      if (!ok) return;
+      deleteProduct(product.id).then(() => loadProducts());
+    });
   }
 
   return (

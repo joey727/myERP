@@ -13,7 +13,7 @@ export default function Root({ children }: PropsWithChildren) {
         />
 
         {/* Cross-Origin Isolation for SharedArrayBuffer (expo-sqlite WASM) */}
-        <script src="coi-serviceworker.js" />
+        <script src="coi-serviceworker.js"></script>
 
         <ScrollViewStyleReset />
       </head>

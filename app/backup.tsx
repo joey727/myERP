@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, ScrollView, View } from "react-native";
+import { Platform, ScrollView, View } from "react-native";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { useRouter } from "expo-router";
@@ -7,6 +7,7 @@ import { Text } from "react-native";
 
 import { getBusiness, listProducts, listStaff, listSales, listAllCustomers, getSaleItems } from "@/db/database";
 import { PrimaryButton, Screen, SecondaryButton } from "@/ui/components";
+import { notify } from "@/ui/dialog";
 import { colors, fontSize } from "@/ui/theme";
 
 function convertToCSV(data: Record<string, unknown>[], headers: string[]): string {
@@ -136,28 +137,47 @@ export default function BackupScreen() {
 
       const csv = csvParts.join("\n");
       const fileName = `myERP-backup-${new Date().toISOString().split("T")[0]}.csv`;
-      const file = new File(Paths.document, fileName);
 
-      file.write(csv, {
-        encoding: "utf8"
-      });
-
-      const fileUri = file.uri;
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(fileUri, {
-          mimeType: "text/csv",
-          dialogTitle: "Export myERP Backup",
-          UTI: "public.comma-separated-values-text"
-        });
+      if (Platform.OS === "web") {
+        downloadCsvOnWeb(csv, fileName);
       } else {
-        Alert.alert("Data Ready", "Your data is ready to export. Use the share feature.");
+        const file = new File(Paths.document, fileName);
+        file.write(csv, { encoding: "utf8" });
+
+        const fileUri = file.uri;
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: "text/csv",
+            dialogTitle: "Export myERP Backup",
+            UTI: "public.comma-separated-values-text"
+          });
+        } else {
+          notify({ title: "Data Ready", message: "Your data is ready to export. Use the share feature." });
+        }
       }
     } catch (error) {
-      Alert.alert("Export Failed", error instanceof Error ? error.message : "Could not export data");
+      notify({
+        title: "Export Failed",
+        message: error instanceof Error ? error.message : "Could not export data"
+      });
     } finally {
       setExporting(false);
     }
+  }
+
+  function downloadCsvOnWeb(csv: string, filename: string) {
+    if (typeof document === "undefined") return;
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
   }
 
   return (

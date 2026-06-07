@@ -1,8 +1,8 @@
-import { Redirect, router } from "expo-router";
+import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 
-import { getBusiness, saveBusiness } from "@/db/database";
+import { getBusiness, saveBusiness, subscribeBusinessChange } from "@/db/database";
 import { Business } from "@/db/types";
 import { Card, ChipGroup, Field, PrimaryButton, Screen } from "@/ui/components";
 import { colors, fontSize } from "@/ui/theme";
@@ -18,6 +18,9 @@ export default function WelcomeScreen() {
 
   useEffect(() => {
     getBusiness().then(setBusiness);
+    return subscribeBusinessChange(() => {
+      getBusiness().then(setBusiness);
+    });
   }, []);
 
   if (business) {
@@ -65,7 +68,6 @@ export default function WelcomeScreen() {
                   ownerName: ownerName.trim(),
                   ownerPin: ownerPin.trim()
                 });
-                router.replace("/(tabs)");
               }}
               title="Create business"
             />
