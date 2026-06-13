@@ -18,7 +18,8 @@ export function Field({
   onChangeText,
   keyboardType,
   placeholder,
-  secureTextEntry
+  secureTextEntry,
+  editable
 }: {
   label: string;
   value: string;
@@ -26,17 +27,19 @@ export function Field({
   keyboardType?: TextInputProps["keyboardType"];
   placeholder?: string;
   secureTextEntry?: boolean;
+  editable?: boolean;
 }) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
+        editable={editable}
         keyboardType={keyboardType}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={colors.inputPlaceholder}
         secureTextEntry={secureTextEntry}
-        style={styles.input}
+        style={[styles.input, editable === false && { color: colors.muted }]}
         value={value}
       />
     </View>

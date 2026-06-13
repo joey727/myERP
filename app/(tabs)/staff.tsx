@@ -3,6 +3,8 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { useSession } from "@/auth/session";
+import { canAccess } from "@/auth/permissions";
 import { addStaff, deleteStaff, listStaff, updateStaff } from "@/db/database";
 import type { StaffMember, StaffRole } from "@/db/types";
 import { ActionButton, Badge, Card, ChipGroup, EmptyState, Field, PrimaryButton, Screen } from "@/ui/components";
@@ -13,10 +15,16 @@ const roles: StaffRole[] = ["manager", "cashier", "inventory"];
 
 export default function StaffScreen() {
   const isFocused = useIsFocused();
+  const { staffRole } = useSession();
+  const role = (staffRole ?? "cashier") as StaffRole;
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [name, setName] = useState("");
-  const [role, setRole] = useState<StaffRole>("cashier");
+  const [selectedRole, setSelectedRole] = useState<StaffRole>("cashier");
   const [pin, setPin] = useState("");
+
+  const canCreate = canAccess(role, "staff:create");
+  const canEdit = canAccess(role, "staff:edit");
+  const canDelete = canAccess(role, "staff:delete");
 
   useEffect(() => {
     if (isFocused) {
@@ -64,29 +72,31 @@ export default function StaffScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         <Screen>
-          <Card>
-            <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900" }}>Add staff login</Text>
-            <Field label="Staff name" onChangeText={setName} placeholder="Cashier name" value={name} />
-            <Text style={{ color: colors.ink, fontSize: fontSize.base, fontWeight: "700" }}>Role</Text>
-            <ChipGroup
-              items={roles}
-              selected={role}
-              onSelect={setRole}
-              labelFn={(r) => r.charAt(0).toUpperCase() + r.slice(1)}
-            />
-            <Field keyboardType="number-pad" label="PIN" onChangeText={setPin} secureTextEntry value={pin} />
-            <PrimaryButton
-              disabled={!canSave}
-              onPress={async () => {
-                await addStaff({ name: name.trim(), role, pin: pin.trim() });
-                setName("");
-                setRole("cashier");
-                setPin("");
-                listStaff().then(setStaff);
-              }}
-              title="Create staff login"
-            />
-          </Card>
+          {canCreate && (
+            <Card>
+              <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900" }}>Add staff login</Text>
+              <Field label="Staff name" onChangeText={setName} placeholder="Cashier name" value={name} />
+              <Text style={{ color: colors.ink, fontSize: fontSize.base, fontWeight: "700" }}>Role</Text>
+              <ChipGroup
+                items={roles}
+                selected={selectedRole}
+                onSelect={setSelectedRole}
+                labelFn={(r) => r.charAt(0).toUpperCase() + r.slice(1)}
+              />
+              <Field keyboardType="number-pad" label="PIN" onChangeText={setPin} secureTextEntry value={pin} />
+              <PrimaryButton
+                disabled={!canSave}
+                onPress={async () => {
+                  await addStaff({ name: name.trim(), role: selectedRole, pin: pin.trim() });
+                  setName("");
+                  setSelectedRole("cashier");
+                  setPin("");
+                  listStaff().then(setStaff);
+                }}
+                title="Create staff login"
+              />
+            </Card>
+          )}
 
           <View style={{ gap: 10 }}>
             <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900" }}>Team ({staff.length})</Text>
@@ -99,7 +109,7 @@ export default function StaffScreen() {
             ) : (
               staff.map((member) => (
                 <Card key={member.id}>
-                  <Pressable onPress={() => handleEdit(member)}>
+                  <Pressable onPress={() => canEdit && handleEdit(member)}>
                     <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
                       <View style={{ flex: 1, gap: 4 }}>
                         <Text style={{ color: colors.ink, fontSize: fontSize.lg, fontWeight: "900" }}>{member.name}</Text>
@@ -112,9 +122,11 @@ export default function StaffScreen() {
                     </View>
                   </Pressable>
                   <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
-                    <ActionButton onPress={() => handleEdit(member)} title="Edit" />
-                    <ActionButton onPress={() => handleToggleActive(member)} title={member.active ? "Deactivate" : "Activate"} />
-                    <ActionButton onPress={() => handleDelete(member)} title="Delete" variant="destructive" />
+                    {canEdit && <ActionButton onPress={() => handleEdit(member)} title="Edit" />}
+                    {canEdit && (
+                      <ActionButton onPress={() => handleToggleActive(member)} title={member.active ? "Deactivate" : "Activate"} />
+                    )}
+                    {canDelete && <ActionButton onPress={() => handleDelete(member)} title="Delete" variant="destructive" />}
                   </View>
                 </Card>
               ))

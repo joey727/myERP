@@ -3,8 +3,10 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { useSession } from "@/auth/session";
+import { canAccess } from "@/auth/permissions";
 import { deleteProduct, listProducts, searchProducts, upsertProduct } from "@/db/database";
-import type { Product } from "@/db/types";
+import type { Product, StaffRole } from "@/db/types";
 import { formatMoney, parseMoney } from "@/lib/money";
 import { ActionButton, Card, EmptyState, Field, PrimaryButton, Screen, SecondaryButton } from "@/ui/components";
 import { confirm } from "@/ui/dialog";
@@ -12,6 +14,8 @@ import { colors, fontSize, radius } from "@/ui/theme";
 
 export default function InventoryScreen() {
   const isFocused = useIsFocused();
+  const { staffRole } = useSession();
+  const role = (staffRole ?? "cashier") as StaffRole;
   const params = useLocalSearchParams<{ barcode?: string }>();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,6 +26,10 @@ export default function InventoryScreen() {
   const [sellingPrice, setSellingPrice] = useState("");
   const [stock, setStock] = useState("");
   const [lowStockAt, setLowStockAt] = useState("5");
+
+  const canCreate = canAccess(role, "products:create");
+  const canEdit = canAccess(role, "products:edit");
+  const canDelete = canAccess(role, "products:delete");
 
   useEffect(() => {
     if (isFocused) {
@@ -75,58 +83,60 @@ export default function InventoryScreen() {
             />
           </View>
 
-          <Card>
-            <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900" }}>Add product</Text>
-            <Field label="Product name" onChangeText={setName} placeholder="5kg rice" value={name} />
-            <Field label="Category" onChangeText={setCategory} placeholder="Food items" value={category} />
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              <View style={{ flex: 1 }}>
-                <Field label="Barcode" onChangeText={setBarcode} placeholder="Scan or type" value={barcode} />
+          {canCreate && (
+            <Card>
+              <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900" }}>Add product</Text>
+              <Field label="Product name" onChangeText={setName} placeholder="5kg rice" value={name} />
+              <Field label="Category" onChangeText={setCategory} placeholder="Food items" value={category} />
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Field label="Barcode" onChangeText={setBarcode} placeholder="Scan or type" value={barcode} />
+                </View>
+                <View style={{ justifyContent: "flex-end", width: 96 }}>
+                  <SecondaryButton onPress={() => router.push({ pathname: "/scan", params: { target: "inventory" } })} title="Scan" />
+                </View>
               </View>
-              <View style={{ justifyContent: "flex-end", width: 96 }}>
-                <SecondaryButton onPress={() => router.push({ pathname: "/scan", params: { target: "inventory" } })} title="Scan" />
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Field keyboardType="decimal-pad" label="Cost" onChangeText={setCostPrice} value={costPrice} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Field keyboardType="decimal-pad" label="Price" onChangeText={setSellingPrice} value={sellingPrice} />
+                </View>
               </View>
-            </View>
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              <View style={{ flex: 1 }}>
-                <Field keyboardType="decimal-pad" label="Cost" onChangeText={setCostPrice} value={costPrice} />
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Field keyboardType="number-pad" label="Stock" onChangeText={setStock} value={stock} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Field keyboardType="number-pad" label="Low at" onChangeText={setLowStockAt} value={lowStockAt} />
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Field keyboardType="decimal-pad" label="Price" onChangeText={setSellingPrice} value={sellingPrice} />
-              </View>
-            </View>
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              <View style={{ flex: 1 }}>
-                <Field keyboardType="number-pad" label="Stock" onChangeText={setStock} value={stock} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Field keyboardType="number-pad" label="Low at" onChangeText={setLowStockAt} value={lowStockAt} />
-              </View>
-            </View>
-            <PrimaryButton
-              disabled={!canSave}
-              onPress={async () => {
-                await upsertProduct({
-                  name: name.trim(),
-                  category: category.trim() || "General",
-                  barcode: barcode.trim(),
-                  costPrice: parseMoney(costPrice),
-                  sellingPrice: parseMoney(sellingPrice),
-                  stock: Number(stock) || 0,
-                  lowStockAt: Number(lowStockAt) || 5
-                });
-                setName("");
-                setCategory("");
-                setBarcode("");
-                setCostPrice("");
-                setSellingPrice("");
-                setStock("");
-                setLowStockAt("5");
-                loadProducts();
-              }}
-              title="Save product"
-            />
-          </Card>
+              <PrimaryButton
+                disabled={!canSave}
+                onPress={async () => {
+                  await upsertProduct({
+                    name: name.trim(),
+                    category: category.trim() || "General",
+                    barcode: barcode.trim(),
+                    costPrice: parseMoney(costPrice),
+                    sellingPrice: parseMoney(sellingPrice),
+                    stock: Number(stock) || 0,
+                    lowStockAt: Number(lowStockAt) || 5
+                  });
+                  setName("");
+                  setCategory("");
+                  setBarcode("");
+                  setCostPrice("");
+                  setSellingPrice("");
+                  setStock("");
+                  setLowStockAt("5");
+                  loadProducts();
+                }}
+                title="Save product"
+              />
+            </Card>
+          )}
 
           <View style={{ gap: 10 }}>
             <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900" }}>Inventory ({products.length})</Text>
@@ -139,7 +149,7 @@ export default function InventoryScreen() {
             ) : (
               products.map((product) => (
                 <Card key={product.id}>
-                  <Pressable onPress={() => handleEdit(product)}>
+                  <Pressable onPress={() => canEdit && handleEdit(product)}>
                     <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
                       <View style={{ flex: 1, gap: 4 }}>
                         <Text style={{ color: colors.ink, fontSize: fontSize.lg, fontWeight: "900" }}>{product.name}</Text>
@@ -157,8 +167,8 @@ export default function InventoryScreen() {
                     {product.barcode ? <Text style={{ color: colors.muted, fontSize: fontSize.sm, marginTop: 4 }}>Barcode: {product.barcode}</Text> : null}
                   </Pressable>
                   <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
-                    <ActionButton onPress={() => handleEdit(product)} title="Edit" />
-                    <ActionButton onPress={() => handleDelete(product)} title="Delete" variant="destructive" />
+                    {canEdit && <ActionButton onPress={() => handleEdit(product)} title="Edit" />}
+                    {canDelete && <ActionButton onPress={() => handleDelete(product)} title="Delete" variant="destructive" />}
                   </View>
                 </Card>
               ))

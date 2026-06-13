@@ -1,18 +1,21 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
-import { View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 
+import { useSession } from "@/auth/session";
+import { canAccess } from "@/auth/permissions";
 import { getProductById, updateProduct } from "@/db/database";
-import type { Product } from "@/db/types";
+import type { Product, StaffRole } from "@/db/types";
 import { parseMoney } from "@/lib/money";
 import { Card, Field, PrimaryButton, Screen, ScreenLoader, SecondaryButton } from "@/ui/components";
 import { colors, fontSize } from "@/ui/theme";
-import { Text } from "react-native";
 
 export default function ProductEditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { staffRole } = useSession();
+  const role = (staffRole ?? "cashier") as StaffRole;
+
   const [product, setProduct] = useState<Product | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
@@ -23,7 +26,13 @@ export default function ProductEditScreen() {
   const [lowStockAt, setLowStockAt] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const canEdit = canAccess(role, "products:edit");
+
   useEffect(() => {
+    if (!canEdit) {
+      router.back();
+      return;
+    }
     const productId = Number(id);
     if (productId) {
       getProductById(productId).then((p) => {
@@ -40,7 +49,7 @@ export default function ProductEditScreen() {
         setLoading(false);
       });
     }
-  }, [id]);
+  }, [id, canEdit, router]);
 
   const canSave = name.trim().length > 1 && parseMoney(sellingPrice) > 0;
 
