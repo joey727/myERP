@@ -36,9 +36,23 @@ Ghanaian small businesses face unique challenges:
 
 ### Staff Management
 - Create staff accounts with PINs
-- Assign roles (Manager, Cashier)
+- Assign roles (Owner, Manager, Cashier, Inventory)
 - Track who made each sale
 - Enable/disable staff access
+
+### Role-Based Access Control
+Each staff role has specific permissions:
+
+| Area | Owner | Manager | Cashier | Inventory |
+|---|---|---|---|---|
+| Manage products (create/edit/delete) | ✅ | ✅ | ❌ | ✅ |
+| Process sales | ✅ | ✅ | ✅ | ❌ |
+| View reports | ✅ | ✅ | ✅ | ❌ |
+| Manage staff | ✅ | ✅ | ❌ | ❌ |
+| Edit business settings | ✅ | ❌ | ❌ | ❌ |
+| Export data | ✅ | ✅ | ❌ | ❌ |
+
+Tabs that contain no accessible actions (e.g., Staff tab for Cashiers, Reports tab for Inventory) are hidden from the tab bar. All other tabs remain visible with action buttons hidden based on the user's role.
 
 ### Reports & Analytics
 - See daily, weekly, or monthly revenue
@@ -79,16 +93,18 @@ Ghanaian small businesses face unique challenges:
    - Add staff members with PINs
    - Begin making sales!
 
+> **Note:** Available screens and actions depend on your staff role. See [Role-Based Access Control](#role-based-access-control) below.
+
 ### Using the App
 
 | Screen | What you do there |
 |--------|-------------------|
 | Dashboard | See today's sales, revenue, and alerts |
-| Inventory | Add, edit, or delete products |
+| Inventory | Browse, add, edit, or delete products |
 | Sales | Make sales and serve customers |
-| Staff | Manage your team |
-| Reports | View analytics and trends |
-| Settings | Update business details |
+| Staff | Manage your team (Owner/Manager only) |
+| Reports | View analytics and trends (hidden for Inventory role) |
+| Settings | Update business details and export data |
 
 ---
 
@@ -136,7 +152,7 @@ myERP/
 │   └── receipt/[id].tsx    # Receipt view
 │
 ├── src/                    # Source code
-│   ├── auth/               # Authentication
+│   ├── auth/               # Authentication & permissions
 │   ├── db/                 # Database functions
 │   ├── lib/                # Utilities
 │   └── ui/                 # Shared components
