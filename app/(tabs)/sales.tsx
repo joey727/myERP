@@ -14,13 +14,15 @@ import {
   View,
 } from "react-native";
 
+import { useSession } from "@/auth/session";
+import { canAccess } from "@/auth/permissions";
 import {
   createSale,
   listProducts,
   listStaff,
   getOrCreateCustomer,
 } from "@/db/database";
-import type { PaymentMethod, Product, StaffMember } from "@/db/types";
+import type { PaymentMethod, Product, StaffMember, StaffRole } from "@/db/types";
 import { formatMoney } from "@/lib/money";
 import { Card, Chip, EmptyState, Field, PrimaryButton, Screen } from "@/ui/components";
 import { notify } from "@/ui/dialog";
@@ -33,8 +35,11 @@ type CartItem = {
 
 export default function SalesScreen() {
   const isFocused = useIsFocused();
+  const { staffRole } = useSession();
+  const role = (staffRole ?? "cashier") as StaffRole;
   const params = useLocalSearchParams<{ barcode?: string }>();
   const { width: screenWidth } = useWindowDimensions();
+  const canProcessSales = canAccess(role, "sales:process");
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -388,38 +393,40 @@ export default function SalesScreen() {
                 />
               ))}
             </View>
-            <PrimaryButton
-              disabled={cart.length === 0}
-              onPress={async () => {
-                if (
-                  paymentMethod === "momo" &&
-                  customerPhone.trim().length > 0 &&
-                  customerPhone.trim().length < 9
-                ) {
-                  notify({
-                    title: "Invalid number",
-                    message: "Enter a valid 9-digit mobile number."
+            {canProcessSales && (
+              <PrimaryButton
+                disabled={cart.length === 0}
+                onPress={async () => {
+                  if (
+                    paymentMethod === "momo" &&
+                    customerPhone.trim().length > 0 &&
+                    customerPhone.trim().length < 9
+                  ) {
+                    notify({
+                      title: "Invalid number",
+                      message: "Enter a valid 9-digit mobile number."
+                    });
+                    return;
+                  }
+
+                  if (customerPhone.trim().length >= 9) {
+                    await getOrCreateCustomer(customerPhone.trim());
+                  }
+
+                  const saleId = await createSale({
+                    items: cart,
+                    paymentMethod,
+                    customerPhone: customerPhone.trim(),
+                    staffId,
                   });
-                  return;
-                }
 
-                if (customerPhone.trim().length >= 9) {
-                  await getOrCreateCustomer(customerPhone.trim());
-                }
-
-                const saleId = await createSale({
-                  items: cart,
-                  paymentMethod,
-                  customerPhone: customerPhone.trim(),
-                  staffId,
-                });
-
-                setCart([]);
-                setCustomerPhone("");
-                router.push(`/receipt/${saleId}`);
-              }}
-              title="Complete Sale"
-            />
+                  setCart([]);
+                  setCustomerPhone("");
+                  router.push(`/receipt/${saleId}`);
+                }}
+                title="Complete Sale"
+              />
+            )}
           </Card>
         </Screen>
       </ScrollView>

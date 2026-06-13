@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { Platform, ScrollView, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Platform, ScrollView, Text, View } from "react-native";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { useRouter } from "expo-router";
-import { Text } from "react-native";
 
+import { useSession } from "@/auth/session";
+import { canAccess } from "@/auth/permissions";
 import { getBusiness, listProducts, listStaff, listSales, listAllCustomers, getSaleItems } from "@/db/database";
+import type { StaffRole } from "@/db/types";
 import { PrimaryButton, Screen, SecondaryButton } from "@/ui/components";
 import { notify } from "@/ui/dialog";
 import { colors, fontSize } from "@/ui/theme";
@@ -29,7 +31,15 @@ function convertToCSV(data: Record<string, unknown>[], headers: string[]): strin
 
 export default function BackupScreen() {
   const router = useRouter();
+  const { staffRole } = useSession();
+  const role = (staffRole ?? "cashier") as StaffRole;
   const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    if (!canAccess(role, "data:export")) {
+      router.back();
+    }
+  }, [role, router]);
 
   async function handleExport() {
     setExporting(true);

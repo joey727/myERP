@@ -1,9 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 
+import { useSession } from "@/auth/session";
+import { canAccess } from "@/auth/permissions";
 import { colors, fontSize } from "@/ui/theme";
 
 export default function TabsLayout() {
+  const { staffRole } = useSession();
+  const role = staffRole ?? "cashier";
+
   return (
     <Tabs
       screenOptions={{
@@ -45,20 +50,24 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons color={color} name="cart-outline" size={size + 2} />
         }}
       />
-      <Tabs.Screen
-        name="staff"
-        options={{
-          title: "Staff",
-          tabBarIcon: ({ color, size }) => <Ionicons color={color} name="people-outline" size={size + 2} />
-        }}
-      />
-      <Tabs.Screen
-        name="reports"
-        options={{
-          title: "Reports",
-          tabBarIcon: ({ color, size }) => <Ionicons color={color} name="bar-chart-outline" size={size + 2} />
-        }}
-      />
+      {canAccess(role, "staff:view") && (
+        <Tabs.Screen
+          name="staff"
+          options={{
+            title: "Staff",
+            tabBarIcon: ({ color, size }) => <Ionicons color={color} name="people-outline" size={size + 2} />
+          }}
+        />
+      )}
+      {canAccess(role, "reports:view") && (
+        <Tabs.Screen
+          name="reports"
+          options={{
+            title: "Reports",
+            tabBarIcon: ({ color, size }) => <Ionicons color={color} name="bar-chart-outline" size={size + 2} />
+          }}
+        />
+      )}
     </Tabs>
   );
 }

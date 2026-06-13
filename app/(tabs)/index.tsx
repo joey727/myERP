@@ -4,18 +4,23 @@ import { Link, router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
+import { useSession } from "@/auth/session";
+import { canAccess } from "@/auth/permissions";
 import {
   getBusiness,
   getDashboardSummary,
   getCustomerCount,
   listRecentSales,
 } from "@/db/database";
-import type { Business, DashboardSummary, Sale } from "@/db/types";
+import type { Business, DashboardSummary, Sale, StaffRole } from "@/db/types";
 import { formatMoney } from "@/lib/money";
 import { Card, EmptyState, Screen, Skeleton, Stat } from "@/ui/components";
 import { colors, fontSize, radius } from "@/ui/theme";
 
 export default function DashboardScreen() {
+  const { staffRole } = useSession();
+  const role = (staffRole ?? "cashier") as StaffRole;
+  const canManageSettings = canAccess(role, "settings:edit") || canAccess(role, "data:export");
   const [business, setBusiness] = useState<Business | null>(null);
   const [summary, setSummary] = useState<DashboardSummary>({
     productCount: 0,
@@ -59,16 +64,18 @@ export default function DashboardScreen() {
               {business?.category ?? "Local business workspace"}
             </Text>
           </View>
-          <Pressable
-            onPress={() => router.push("/settings")}
-            style={({ pressed }) => ({
-              padding: 8,
-              borderRadius: radius.md,
-              backgroundColor: pressed ? colors.panelAlt : "transparent",
-            })}
-          >
-            <Ionicons color={colors.muted} name="settings-outline" size={24} />
-          </Pressable>
+          {canManageSettings && (
+            <Pressable
+              onPress={() => router.push("/settings")}
+              style={({ pressed }) => ({
+                padding: 8,
+                borderRadius: radius.md,
+                backgroundColor: pressed ? colors.panelAlt : "transparent",
+              })}
+            >
+              <Ionicons color={colors.muted} name="settings-outline" size={24} />
+            </Pressable>
+          )}
         </View>
 
         {summary.lowStockCount > 0 && (

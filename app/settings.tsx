@@ -2,14 +2,20 @@ import { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
+import { useSession } from "@/auth/session";
+import { canAccess } from "@/auth/permissions";
 import { getBusiness, updateBusiness } from "@/db/database";
-import type { Business } from "@/db/types";
+import type { Business, StaffRole } from "@/db/types";
 import { parseMoney } from "@/lib/money";
 import { Card, Field, PrimaryButton, Screen, ScreenLoader, SecondaryButton } from "@/ui/components";
 import { colors, fontSize } from "@/ui/theme";
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { staffRole } = useSession();
+  const role = (staffRole ?? "cashier") as StaffRole;
+  const canEdit = canAccess(role, "settings:edit");
+  const canExport = canAccess(role, "data:export");
   const [business, setBusiness] = useState<Business | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
@@ -51,25 +57,30 @@ export default function SettingsScreen() {
       <Screen>
         <Card>
           <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900", marginBottom: 4 }}>Business Details</Text>
-          <Field label="Business name" onChangeText={setName} value={name} />
-          <Field label="Category" onChangeText={setCategory} value={category} />
-          <Field label="Currency" onChangeText={setCurrency} placeholder="GHS, USD, etc." value={currency} />
+          <Field label="Business name" onChangeText={setName} value={name} editable={canEdit} />
+          <Field label="Category" onChangeText={setCategory} value={category} editable={canEdit} />
+          <Field label="Currency" onChangeText={setCurrency} placeholder="GHS, USD, etc." value={currency} editable={canEdit} />
           <Field
             keyboardType="decimal-pad"
             label="Tax rate (%)"
             onChangeText={setTaxRate}
             placeholder="0"
             value={taxRate}
+            editable={canEdit}
           />
         </Card>
 
-        <PrimaryButton disabled={!canSave} onPress={handleSave} title="Save settings" />
+        {canEdit && (
+          <PrimaryButton disabled={!canSave} onPress={handleSave} title="Save settings" />
+        )}
         <SecondaryButton onPress={() => router.back()} title="Cancel" />
 
-        <View style={{ marginTop: 24 }}>
-          <Text style={{ color: colors.ink, fontSize: fontSize.lg, fontWeight: "900", marginBottom: 12 }}>Data</Text>
-          <SecondaryButton onPress={() => router.push("/backup")} title="Backup & Export" />
-        </View>
+        {canExport && (
+          <View style={{ marginTop: 24 }}>
+            <Text style={{ color: colors.ink, fontSize: fontSize.lg, fontWeight: "900", marginBottom: 12 }}>Data</Text>
+            <SecondaryButton onPress={() => router.push("/backup")} title="Backup & Export" />
+          </View>
+        )}
       </Screen>
     </ScrollView>
   );
