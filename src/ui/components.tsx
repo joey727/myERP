@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import type React from "react";
 import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, TextInput, TextInputProps, View, ViewStyle } from "react-native";
+import { useEffect, useRef } from "react";
 
 import { colors, fontSize, radius, shadow } from "./theme";
 
@@ -181,14 +182,18 @@ export function ScreenLoader({ message = "Loading..." }: { message?: string }) {
 }
 
 export function Skeleton({ width, height = 20 }: { width: number | string; height?: number }) {
-  const opacity = new Animated.Value(0.3);
+  const opacity = useRef(new Animated.Value(0.3)).current;
 
-  Animated.loop(
-    Animated.sequence([
-      Animated.timing(opacity, { toValue: 1, duration: 800, useNativeDriver: true }),
-      Animated.timing(opacity, { toValue: 0.3, duration: 800, useNativeDriver: true })
-    ])
-  ).start();
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.3, duration: 800, useNativeDriver: true })
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [opacity]);
 
   return (
     <Animated.View
