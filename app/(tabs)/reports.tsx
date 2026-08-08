@@ -1,8 +1,7 @@
 import { useIsFocused } from "@react-navigation/native";
 import { useEffect, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { BarChart, PieChart } from "react-native-chart-kit";
-import { useWindowDimensions } from "react-native";
 
 import {
   getPaymentBreakdown,
@@ -10,7 +9,8 @@ import {
   getSalesCount,
   getStaffSalesStats,
   getTopProducts,
-  getTotalRevenue
+  getTotalRevenue,
+  getGrossProfit
 } from "@/db/database";
 import type { DailyRevenue, PaymentBreakdown, StaffStats, TopProduct } from "@/db/types";
 import { formatMoney } from "@/lib/money";
@@ -48,6 +48,7 @@ export default function ReportsScreen() {
   const [staffStats, setStaffStats] = useState<StaffStats[]>([]);
   const [paymentBreakdown, setPaymentBreakdown] = useState<PaymentBreakdown[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
+  const [grossProfit, setGrossProfit] = useState(0);
   const [salesCount, setSalesCount] = useState(0);
 
   useEffect(() => {
@@ -59,12 +60,13 @@ export default function ReportsScreen() {
   async function loadData() {
     const { start, end } = getDateRange(period);
 
-    const [revenue, products, staff, payments, total, count] = await Promise.all([
+    const [revenue, products, staff, payments, total, profit, count] = await Promise.all([
       getRevenueByDateRange(start, end),
       getTopProducts(5, start, end),
       getStaffSalesStats(start, end),
       getPaymentBreakdown(start, end),
       getTotalRevenue(start, end),
+      getGrossProfit(start, end),
       getSalesCount(start, end)
     ]);
 
@@ -73,6 +75,7 @@ export default function ReportsScreen() {
     setStaffStats(staff.filter(s => s.salesCount > 0));
     setPaymentBreakdown(payments);
     setTotalRevenue(total);
+    setGrossProfit(profit);
     setSalesCount(count);
   }
 
@@ -124,11 +127,8 @@ export default function ReportsScreen() {
           <Stat label="Transactions" value={String(salesCount)} />
         </View>
         <View style={{ flexDirection: "row", gap: 10 }}>
+          <Stat label="Gross profit" tone="success" value={formatMoney(grossProfit, "GHS")} />
           <Stat label="Avg. Sale" value={formatMoney(avgSale, "GHS")} />
-          <Stat
-            label="Products Sold"
-            value={String(topProducts.reduce((sum, p) => sum + p.quantitySold, 0))}
-          />
         </View>
 
         {revenueChartData.length > 0 && revenueChartData[0].value > 0 && (
@@ -169,8 +169,11 @@ export default function ReportsScreen() {
             <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900", marginBottom: 12 }}>Top Products</Text>
             {topProducts.map((p, i) => (
               <View key={p.id} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 6, borderBottomWidth: i < topProducts.length - 1 ? 1 : 0, borderBottomColor: colors.border }}>
-                <Text style={{ color: colors.ink, fontWeight: "700" }}>{i + 1}. {p.name}</Text>
-                <Text style={{ color: colors.muted, fontWeight: "600" }}>{p.quantitySold} sold</Text>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={{ color: colors.ink, fontWeight: "700" }}>{i + 1}. {p.name}</Text>
+                  <Text style={{ color: colors.muted, fontSize: fontSize.sm }}>{p.quantitySold} sold · profit {formatMoney(p.profit, "GHS")}</Text>
+                </View>
+                <Text style={{ color: colors.muted, fontWeight: "600" }}>{formatMoney(p.revenue, "GHS")}</Text>
               </View>
             ))}
           </Card>

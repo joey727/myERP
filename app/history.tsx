@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 
@@ -14,29 +14,33 @@ export default function HistoryScreen() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
   const limit = 20;
+  const offsetRef = useRef(0);
+  const requestRef = useRef(0);
 
   useEffect(() => {
-    loadSales();
+    const token = ++requestRef.current;
+    const timer = setTimeout(() => loadSales(true, token), 300);
+    return () => clearTimeout(timer);
   }, [search]);
 
-  async function loadSales(reset = true) {
+  async function loadSales(reset = true, token = requestRef.current) {
     setLoading(true);
-    const offset = reset ? 0 : page * limit;
+    const offset = reset ? 0 : offsetRef.current;
     const result = await listSales(limit, offset, undefined, undefined, search.trim() || undefined);
+    if (token !== requestRef.current) return;
     if (reset) {
       setSales(result.sales);
     } else {
-      setSales(prev => [...prev, ...result.sales]);
+      setSales((prev) => [...prev, ...result.sales]);
     }
+    offsetRef.current = offset + result.sales.length;
     setTotal(result.total);
     setLoading(false);
   }
 
   function loadMore() {
     if (!loading && sales.length < total) {
-      setPage(prev => prev + 1);
       loadSales(false);
     }
   }

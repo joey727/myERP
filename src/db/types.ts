@@ -7,7 +7,7 @@ export type Business = {
   createdAt: string;
 };
 
-export type StaffRole = "owner" | "manager" | "cashier" | "inventory";
+export type StaffRole = "owner" | "manager" | "cashier";
 
 export type StaffMember = {
   id: number;
@@ -32,13 +32,17 @@ export type Product = {
 
 export type PaymentMethod = "cash" | "momo";
 
+type SaleStatus = "active" | "voided";
+
 export type Sale = {
   id: number;
   receiptNumber: string;
   total: number;
+  tax: number;
   paymentMethod: PaymentMethod;
   customerPhone: string | null;
   staffId: number | null;
+  status: SaleStatus;
   createdAt: string;
 };
 
@@ -57,6 +61,7 @@ export type DashboardSummary = {
   lowStockCount: number;
   todaySales: number;
   todayRevenue: number;
+  todayProfit: number;
 };
 
 export type Customer = {
@@ -78,6 +83,7 @@ export type TopProduct = {
   name: string;
   quantitySold: number;
   revenue: number;
+  profit: number;
 };
 
 export type StaffStats = {
@@ -91,4 +97,22 @@ export type PaymentBreakdown = {
   method: PaymentMethod;
   count: number;
   total: number;
+};
+
+type StockMovementReason = "sale" | "restock" | "adjustment" | "void";
+
+export type StockMovement = {
+  id: number;
+  productId: number;
+  productName: string;
+  change: number;
+  reason: StockMovementReason;
+  createdAt: string;
+};
+
+export type SaleItemWithReceipt = SaleItem & { receiptNumber: string };
+
+export type CustomerSummary = Customer & {
+  lastSaleAt: string | null;
+  lastSaleTotal: number;
 };

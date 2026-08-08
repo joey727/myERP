@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 
 import { useSession } from "@/auth/session";
 import { canAccess } from "@/auth/permissions";
-import { getBusiness, listProducts, listStaff, listSales, listAllCustomers, getSaleItems } from "@/db/database";
+import { getBusiness, listProducts, listStaff, listSales, listAllCustomers, listAllSaleItems } from "@/db/database";
 import type { StaffRole } from "@/db/types";
 import { PrimaryButton, Screen, SecondaryButton } from "@/ui/components";
 import { notify } from "@/ui/dialog";
@@ -45,22 +45,14 @@ export default function BackupScreen() {
     setExporting(true);
 
     try {
-      const [business, products, staff, salesResult, customers] = await Promise.all([
+      const [business, products, staff, salesResult, customers, allSaleItems] = await Promise.all([
         getBusiness(),
         listProducts(),
         listStaff(),
         listSales(1000, 0),
-        listAllCustomers()
+        listAllCustomers(),
+        listAllSaleItems()
       ]);
-
-      const allSaleItems: Record<string, unknown>[] = [];
-      for (const sale of salesResult.sales) {
-        const items = await getSaleItems(sale.id);
-        allSaleItems.push(...items.map(item => ({
-          ...item,
-          receiptNumber: sale.receiptNumber
-        })));
-      }
 
       const csvParts: string[] = [];
 

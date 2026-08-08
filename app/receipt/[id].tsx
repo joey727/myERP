@@ -4,11 +4,13 @@ import * as Sharing from "expo-sharing";
 import { useEffect, useState } from "react";
 import { Platform, ScrollView, Text, View } from "react-native";
 
-import { getBusiness, getSaleWithItems } from "@/db/database";
-import type { Business, Sale, SaleItem } from "@/db/types";
+import { useSession } from "@/auth/session";
+import { canAccess } from "@/auth/permissions";
+import { getBusiness, getSaleWithItems, voidSale } from "@/db/database";
+import type { Business, Sale, SaleItem, StaffRole } from "@/db/types";
 import { formatMoney } from "@/lib/money";
 import { Badge, Card, PrimaryButton, Screen, ScreenLoader, SecondaryButton } from "@/ui/components";
-import { notify } from "@/ui/dialog";
+import { confirm, notify } from "@/ui/dialog";
 import { colors, fontSize, radius } from "@/ui/theme";
 
 const thermalReceiptWidth = 226;
@@ -69,18 +71,17 @@ function buildReceiptHtml({
   business,
   sale,
   items,
-  currency,
-  taxRate
+  currency
 }: {
   business: Business | null;
   sale: Sale;
   items: SaleItem[];
   currency: string;
-  taxRate: number;
 }) {
-  const subtotal = sale.total;
-  const tax = subtotal * (taxRate / 100);
-  const total = subtotal + tax;
+  const subtotal = sale.total - sale.tax;
+  const tax = sale.tax;
+  const total = sale.total;
+  const voided = sale.status === "voided";
 
   const businessName = escapeHtml(business?.name ?? "myERP");
   const businessCategory = escapeHtml(business?.category ?? "Receipt");
@@ -201,14 +202,14 @@ function buildReceiptHtml({
             <span>SUBTOTAL</span>
             <span class="amount">${escapeHtml(formatMoney(subtotal, currency))}</span>
           </section>
-          ${taxRate > 0 ? `
+          ${tax > 0 ? `
           <section class="row">
-            <span>TAX (${taxRate}%)</span>
+            <span>TAX</span>
             <span class="amount">${escapeHtml(formatMoney(tax, currency))}</span>
           </section>
           ` : ""}
           <section class="row total">
-            <span>TOTAL</span>
+            <span>${voided ? "VOID TOTAL" : "TOTAL"}</span>
             <span class="amount">${escapeHtml(formatMoney(total, currency))}</span>
           </section>
           <section class="row">
@@ -227,7 +228,7 @@ function buildReceiptHtml({
           <div class="rule"></div>
 
           <section class="footer">
-            Thank you for shopping with us.
+            ${voided ? "VOIDED RECEIPT - NO CHARGE" : "Thank you for shopping with us."}
           </section>
         </main>
       </body>
@@ -237,23 +238,30 @@ function buildReceiptHtml({
 
 export default function ReceiptScreen() {
   const params = useLocalSearchParams<{ id: string }>();
+  const { staffRole } = useSession();
+  const role = (staffRole ?? "cashier") as StaffRole;
+  const canVoid = canAccess(role, "sales:void");
   const [business, setBusiness] = useState<Business | null>(null);
   const [sale, setSale] = useState<Sale | null>(null);
   const [items, setItems] = useState<SaleItem[]>([]);
   const [printing, setPrinting] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [voiding, setVoiding] = useState(false);
+
+  function loadReceipt(saleId: number) {
+    getBusiness().then(setBusiness);
+    getSaleWithItems(saleId).then((record) => {
+      if (record) {
+        setSale(record.sale);
+        setItems(record.items);
+      }
+    });
+  }
 
   useEffect(() => {
     const saleId = Number(params.id);
-
     if (saleId) {
-      getBusiness().then(setBusiness);
-      getSaleWithItems(saleId).then((record) => {
-        if (record) {
-          setSale(record.sale);
-          setItems(record.items);
-        }
-      });
+      loadReceipt(saleId);
     }
   }, [params.id]);
 
@@ -262,12 +270,11 @@ export default function ReceiptScreen() {
   }
 
   const currency = business?.currency ?? "GHS";
-  const taxRate = business?.taxRate ?? 0;
-  const subtotal = sale.total;
-  const tax = subtotal * (taxRate / 100);
-  const total = subtotal + tax;
+  const subtotal = sale.total - sale.tax;
+  const tax = sale.tax;
+  const total = sale.total;
 
-  const receiptHtml = buildReceiptHtml({ business, sale, items, currency, taxRate });
+  const receiptHtml = buildReceiptHtml({ business, sale, items, currency });
   const receiptPrintOptions = {
     height: Math.max(minimumThermalReceiptHeight, 300 + items.length * 58),
     html: receiptHtml,
@@ -278,6 +285,20 @@ export default function ReceiptScreen() {
       top: 0
     },
     width: thermalReceiptWidth
+  };
+
+  const handleVoid = async () => {
+    const ok = await confirm({
+      title: "Void receipt",
+      message: `Voiding this receipt restores stock and removes it from reports. This cannot be undone.`,
+      confirmText: "Void receipt",
+      destructive: true
+    });
+    if (!ok) return;
+    setVoiding(true);
+    await voidSale(sale.id);
+    loadReceipt(sale.id);
+    setVoiding(false);
   };
 
   const printReceipt = async () => {
@@ -340,7 +361,10 @@ export default function ReceiptScreen() {
               <Text style={{ color: colors.muted }}>{sale.receiptNumber}</Text>
               <Text style={{ color: colors.muted, fontSize: fontSize.sm }}>{new Date(sale.createdAt).toLocaleString()}</Text>
             </View>
-            <Badge label="Paid" tone="success" />
+            <Badge
+              label={sale.status === "voided" ? "VOIDED" : "Paid"}
+              tone={sale.status === "voided" ? "warning" : "success"}
+            />
           </View>
 
           <View style={{ borderTopColor: colors.border, borderTopWidth: 1, gap: 10, paddingTop: 12 }}>
@@ -374,9 +398,9 @@ export default function ReceiptScreen() {
               <Text style={{ color: colors.muted }}>Subtotal</Text>
               <Text style={{ color: colors.ink, fontWeight: "700" }}>{formatMoney(subtotal, currency)}</Text>
             </View>
-            {taxRate > 0 && (
+            {tax > 0 && (
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ color: colors.muted }}>Tax ({taxRate}%)</Text>
+                <Text style={{ color: colors.muted }}>Tax</Text>
                 <Text style={{ color: colors.ink, fontWeight: "700" }}>{formatMoney(tax, currency)}</Text>
               </View>
             )}
@@ -398,8 +422,11 @@ export default function ReceiptScreen() {
             </Text>
           </View>
 
-          <PrimaryButton disabled={printing} onPress={printReceipt} title={printing ? "Printing..." : "Print receipt"} />
+          <PrimaryButton disabled={printing || sale.status === "voided"} onPress={printReceipt} title={printing ? "Printing..." : sale.status === "voided" ? "Receipt voided" : "Print receipt"} />
           <SecondaryButton disabled={sharing} onPress={shareReceipt} title={sharing ? "Preparing PDF..." : "Share PDF"} />
+          {canVoid && sale.status === "active" && (
+            <SecondaryButton disabled={voiding} onPress={handleVoid} title={voiding ? "Voiding..." : "Void receipt"} />
+          )}
         </Card>
       </Screen>
     </ScrollView>

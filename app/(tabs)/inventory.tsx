@@ -5,7 +5,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 
 import { useSession } from "@/auth/session";
 import { canAccess } from "@/auth/permissions";
-import { deleteProduct, listProducts, searchProducts, upsertProduct } from "@/db/database";
+import { deleteProduct, listProducts, upsertProduct } from "@/db/database";
 import type { Product, StaffRole } from "@/db/types";
 import { formatMoney, parseMoney } from "@/lib/money";
 import { ActionButton, Card, EmptyState, Field, PrimaryButton, Screen, SecondaryButton } from "@/ui/components";
@@ -35,7 +35,7 @@ export default function InventoryScreen() {
     if (isFocused) {
       loadProducts();
     }
-  }, [isFocused, searchQuery]);
+  }, [isFocused]);
 
   useEffect(() => {
     if (typeof params.barcode === "string") {
@@ -44,12 +44,18 @@ export default function InventoryScreen() {
   }, [params.barcode]);
 
   async function loadProducts() {
-    if (searchQuery.trim()) {
-      setProducts(await searchProducts(searchQuery.trim()));
-    } else {
-      setProducts(await listProducts());
-    }
+    setProducts(await listProducts());
   }
+
+  const filteredProducts = products.filter((product) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      product.name.toLowerCase().includes(query) ||
+      product.barcode?.toLowerCase().includes(query) ||
+      product.category.toLowerCase().includes(query)
+    );
+  });
 
   const canSave = name.trim().length > 1 && parseMoney(sellingPrice) > 0;
 
@@ -139,15 +145,15 @@ export default function InventoryScreen() {
           )}
 
           <View style={{ gap: 10 }}>
-            <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900" }}>Inventory ({products.length})</Text>
-            {products.length === 0 ? (
+            <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "900" }}>Inventory ({filteredProducts.length})</Text>
+            {filteredProducts.length === 0 ? (
               <EmptyState
                 icon={searchQuery ? "search-outline" : "cube-outline"}
                 title={searchQuery ? "No matches" : "No products yet"}
                 subtitle={searchQuery ? "No products match your search." : "Products you add will appear here with price and stock."}
               />
             ) : (
-              products.map((product) => (
+              filteredProducts.map((product) => (
                 <Card key={product.id}>
                   <Pressable onPress={() => canEdit && handleEdit(product)}>
                     <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>

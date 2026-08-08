@@ -20,7 +20,6 @@ import {
   createSale,
   listProducts,
   listStaff,
-  getOrCreateCustomer,
 } from "@/db/database";
 import type { PaymentMethod, Product, StaffMember, StaffRole } from "@/db/types";
 import { formatMoney } from "@/lib/money";
@@ -355,17 +354,13 @@ export default function SalesScreen() {
                 </Pressable>
               ))}
             </View>
-            {paymentMethod === "momo" && (
-              <View>
-                <Field
-                  keyboardType="phone-pad"
-                  label="Customer MoMo (optional)"
-                  onChangeText={setCustomerPhone}
-                  value={customerPhone}
-                  placeholder="For loyalty tracking"
-                />
-              </View>
-            )}
+            <Field
+              keyboardType="phone-pad"
+              label="Customer phone (optional)"
+              onChangeText={setCustomerPhone}
+              value={customerPhone}
+              placeholder="For loyalty tracking"
+            />
             <Text
               style={{
                 color: colors.ink,
@@ -407,10 +402,6 @@ export default function SalesScreen() {
                       message: "Enter a valid 9-digit mobile number."
                     });
                     return;
-                  }
-
-                  if (customerPhone.trim().length >= 9) {
-                    await getOrCreateCustomer(customerPhone.trim());
                   }
 
                   const saleId = await createSale({
