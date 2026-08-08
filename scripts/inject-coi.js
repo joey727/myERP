@@ -1,5 +1,4 @@
 const fs = require('fs');
-const path = require('path');
 
 const indexPath = process.argv[2];
 const html = fs.readFileSync(indexPath, 'utf8');
