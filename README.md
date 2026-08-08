@@ -79,9 +79,9 @@ Tabs that contain no accessible actions (e.g., the Staff tab for Cashiers) are h
 ### Quick Setup
 
 1. **Download and install**
-   - Clone this repository or download the app
-   - Run `npm install` to install dependencies
-   - Run `npm start` to start the app
+   - **Android:** [Download the latest APK](https://github.com/joey727/myERP/releases/latest/download/myerp.apk)
+   - **Web:** [Open myERP in your browser](https://joey727.github.io/myerp/)
+   - **Source:** Clone this repository, run `npm install`, then `npm start`
 
 2. **First-time setup**
    - Enter your business name
