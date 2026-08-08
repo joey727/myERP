@@ -43,16 +43,16 @@ Ghanaian small businesses face unique challenges:
 ### Role-Based Access Control
 Each staff role has specific permissions:
 
-| Area | Owner | Manager | Cashier | Inventory |
-|---|---|---|---|---|
-| Manage products (create/edit/delete) | ✅ | ✅ | ❌ | ✅ |
-| Process sales | ✅ | ✅ | ✅ | ❌ |
-| View reports | ✅ | ✅ | ✅ | ❌ |
-| Manage staff | ✅ | ✅ | ❌ | ❌ |
-| Edit business settings | ✅ | ❌ | ❌ | ❌ |
-| Export data | ✅ | ✅ | ❌ | ❌ |
+| Area | Owner | Manager | Cashier |
+|---|---|---|---|
+| Manage products (create/edit/delete) | ✅ | ✅ | ❌ |
+| Process sales | ✅ | ✅ | ✅ |
+| View reports | ✅ | ✅ | ✅ |
+| Manage staff | ✅ | ✅ | ❌ |
+| Edit business settings | ✅ | ❌ | ❌ |
+| Export data | ✅ | ✅ | ❌ |
 
-Tabs that contain no accessible actions (e.g., Staff tab for Cashiers, Reports tab for Inventory) are hidden from the tab bar. All other tabs remain visible with action buttons hidden based on the user's role.
+Tabs that contain no accessible actions (e.g., the Staff tab for Cashiers) are hidden from the tab bar. All other tabs remain visible with action buttons hidden based on the user's role.
 
 ### Reports & Analytics
 - See daily, weekly, or monthly revenue
