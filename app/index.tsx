@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 
 import { getBusiness, saveBusiness, subscribeBusinessChange } from "@/db/database";
+import { loginStaffById } from "@/auth/session";
 import { Business } from "@/db/types";
 import { Card, ChipGroup, Field, PrimaryButton, Screen } from "@/ui/components";
 import { notify } from "@/ui/dialog";
@@ -28,7 +29,7 @@ export default function WelcomeScreen() {
     return <Redirect href="/(tabs)" />;
   }
 
-  const canContinue = name.trim().length > 1 && ownerName.trim().length > 1 && ownerPin.trim().length >= 4;
+  const canContinue = name.trim().length > 1 && ownerName.trim().length > 1 && ownerPin.trim().length === 4;
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
@@ -54,7 +55,7 @@ export default function WelcomeScreen() {
               keyboardType="number-pad"
               label="Owner PIN"
               onChangeText={setOwnerPin}
-              placeholder="At least 4 digits"
+              placeholder="4 digits"
               secureTextEntry
               value={ownerPin}
             />
@@ -62,7 +63,7 @@ export default function WelcomeScreen() {
               disabled={!canContinue}
               onPress={async () => {
                 try {
-                  await saveBusiness({
+                  const ownerStaffId = await saveBusiness({
                     name: name.trim(),
                     category,
                     currency: "GHS",
@@ -70,6 +71,7 @@ export default function WelcomeScreen() {
                     ownerName: ownerName.trim(),
                     ownerPin: ownerPin.trim()
                   });
+                  await loginStaffById(ownerStaffId);
                 } catch (err) {
                   console.error("saveBusiness failed:", err);
                   await notify({

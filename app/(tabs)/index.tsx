@@ -4,29 +4,32 @@ import { Link, router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
-import { useSession } from "@/auth/session";
-import { canAccess } from "@/auth/permissions";
+import { logout, useSession } from "@/auth/session";
 import {
   getBusiness,
   getDashboardSummary,
   getCustomerCount,
   listRecentSales,
 } from "@/db/database";
-import type { Business, DashboardSummary, Sale, StaffRole } from "@/db/types";
+import type { Business, DashboardSummary, Sale } from "@/db/types";
 import { formatMoney } from "@/lib/money";
-import { Card, EmptyState, Screen, Skeleton, Stat } from "@/ui/components";
+import { Card, Screen, Skeleton, Stat } from "@/ui/components";
 import { colors, fontSize, radius } from "@/ui/theme";
 
 export default function DashboardScreen() {
-  const { staffRole } = useSession();
-  const role = (staffRole ?? "cashier") as StaffRole;
-  const canManageSettings = canAccess(role, "settings:edit") || canAccess(role, "data:export");
+  const { staffName, staffRole } = useSession();
   const [business, setBusiness] = useState<Business | null>(null);
+
+  async function handleSwitchUser() {
+    await logout();
+    router.replace("/login");
+  }
   const [summary, setSummary] = useState<DashboardSummary>({
     productCount: 0,
     lowStockCount: 0,
     todaySales: 0,
     todayRevenue: 0,
+    todayProfit: 0,
   });
   const [sales, setSales] = useState<Sale[]>([]);
   const [customerCount, setCustomerCount] = useState(0);
@@ -60,22 +63,65 @@ export default function DashboardScreen() {
             >
               {business?.name ?? "myERP"}
             </Text>
-            <Text style={{ color: colors.muted, fontSize: fontSize.md }}>
+<Text style={{ color: colors.muted, fontSize: fontSize.md }}>
               {business?.category ?? "Local business workspace"}
             </Text>
           </View>
-          {canManageSettings && (
-            <Pressable
-              onPress={() => router.push("/settings")}
-              style={({ pressed }) => ({
-                padding: 8,
-                borderRadius: radius.md,
-                backgroundColor: pressed ? colors.panelAlt : "transparent",
-              })}
+          <Pressable
+            onPress={() => router.push("/settings")}
+            style={({ pressed }) => ({
+              padding: 8,
+              borderRadius: radius.md,
+              backgroundColor: pressed ? colors.panelAlt : "transparent",
+            })}
+          >
+            <Ionicons color={colors.muted} name="settings-outline" size={24} />
+          </Pressable>
+        </View>
+
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 4,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.panel,
+              borderColor: colors.border,
+              borderRadius: radius.md,
+              borderWidth: 1,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Ionicons color={colors.primary} name="person-circle-outline" size={16} />
+            <Text style={{ color: colors.ink, fontWeight: "800", fontSize: fontSize.sm }}>
+              {staffName ?? "User"}
+            </Text>
+            <View
+              style={{
+                backgroundColor: colors.panelAlt,
+                borderRadius: radius.sm,
+                paddingHorizontal: 6,
+                paddingVertical: 2,
+              }}
             >
-              <Ionicons color={colors.muted} name="settings-outline" size={24} />
-            </Pressable>
-          )}
+              <Text style={{ color: colors.muted, fontSize: fontSize.xs, textTransform: "capitalize", fontWeight: "700" }}>
+                {staffRole ?? "cashier"}
+              </Text>
+            </View>
+          </View>
+          <Pressable onPress={handleSwitchUser} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+            <Text style={{ color: colors.primary, fontWeight: "800", fontSize: fontSize.sm }}>
+              Switch user
+            </Text>
+          </Pressable>
         </View>
 
         {summary.lowStockCount > 0 && (
@@ -137,6 +183,11 @@ export default function DashboardScreen() {
 
             {customerCount > 0 && (
               <View style={{ flexDirection: "row", gap: 10 }}>
+                <Stat
+                  label="Profit today"
+                  tone="success"
+                  value={formatMoney(summary.todayProfit, business?.currency ?? "GHS")}
+                />
                 <Stat label="Customers" value={String(customerCount)} />
               </View>
             )}
