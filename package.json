@@ -14,8 +14,10 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
+    "@react-navigation/native": "^7.2.4",
     "expo": "^54.0.23",
     "expo-camera": "~17.0.9",
+    "expo-crypto": "~15.0.9",
     "expo-file-system": "~19.0.22",
     "expo-print": "~15.0.8",
     "expo-router": "~6.0.14",
@@ -42,5 +44,14 @@
     "eslint-config-expo": "~10.0.0",
     "knip": "^6.13.1",
     "typescript": "~5.9.2"
+  },
+  "knip": {
+    "ignore": ["babel.config.js", "public/coi-serviceworker.js"],
+    "ignoreDependencies": [
+      "expo-splash-screen",
+      "babel-preset-expo",
+      "expo-updates",
+      "expo-system-ui"
+    ]
   }
 }
