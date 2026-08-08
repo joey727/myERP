@@ -1,7 +1,7 @@
 import { useIsFocused } from "@react-navigation/native";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import { useSession } from "@/auth/session";
 import { canAccess } from "@/auth/permissions";
@@ -11,7 +11,7 @@ import { ActionButton, Badge, Card, ChipGroup, EmptyState, Field, PrimaryButton,
 import { confirm } from "@/ui/dialog";
 import { colors, fontSize } from "@/ui/theme";
 
-const roles: StaffRole[] = ["manager", "cashier", "inventory"];
+const roles: StaffRole[] = ["manager", "cashier"];
 
 export default function StaffScreen() {
   const isFocused = useIsFocused();
@@ -32,7 +32,7 @@ export default function StaffScreen() {
     }
   }, [isFocused]);
 
-  const canSave = name.trim().length > 1 && pin.trim().length >= 4;
+  const canSave = name.trim().length > 1 && pin.trim().length === 4;
 
   function handleEdit(member: StaffMember) {
     router.push(`/staff/${member.id}`);
@@ -83,7 +83,7 @@ export default function StaffScreen() {
                 onSelect={setSelectedRole}
                 labelFn={(r) => r.charAt(0).toUpperCase() + r.slice(1)}
               />
-              <Field keyboardType="number-pad" label="PIN" onChangeText={setPin} secureTextEntry value={pin} />
+              <Field keyboardType="number-pad" label="PIN" onChangeText={setPin} placeholder="4 digits" secureTextEntry value={pin} />
               <PrimaryButton
                 disabled={!canSave}
                 onPress={async () => {

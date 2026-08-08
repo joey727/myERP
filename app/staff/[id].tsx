@@ -9,7 +9,7 @@ import type { StaffMember, StaffRole } from "@/db/types";
 import { Card, ChipGroup, Field, PrimaryButton, Screen, ScreenLoader, SecondaryButton } from "@/ui/components";
 import { colors, fontSize } from "@/ui/theme";
 
-const roles: StaffRole[] = ["manager", "cashier", "inventory"];
+const roles: StaffRole[] = ["manager", "cashier"];
 
 export default function StaffEditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,7 +44,7 @@ export default function StaffEditScreen() {
     }
   }, [id, canEdit, router]);
 
-  const canSave = name.trim().length > 1 && pin.trim().length >= 4;
+  const canSave = name.trim().length > 1 && pin.trim().length === 4;
 
   async function handleSave() {
     if (!member) return;
@@ -86,7 +86,7 @@ export default function StaffEditScreen() {
               onSelect={setRole}
               labelFn={(r) => r.charAt(0).toUpperCase() + r.slice(1)}
             />
-            <Field keyboardType="number-pad" label="PIN" onChangeText={setPin} placeholder="4-6 digit PIN" secureTextEntry value={pin} />
+            <Field keyboardType="number-pad" label="PIN" onChangeText={setPin} placeholder="4-digit PIN" secureTextEntry value={pin} />
           </Card>
 
           <PrimaryButton disabled={!canSave} onPress={handleSave} title="Save changes" />

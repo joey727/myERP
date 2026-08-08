@@ -50,6 +50,15 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons color={color} name="cart-outline" size={size + 2} />
         }}
       />
+      {canAccess(role, "customers:view") && (
+        <Tabs.Screen
+          name="customers"
+          options={{
+            title: "Customers",
+            tabBarIcon: ({ color, size }) => <Ionicons color={color} name="people-circle-outline" size={size + 2} />
+          }}
+        />
+      )}
       {canAccess(role, "staff:view") && (
         <Tabs.Screen
           name="staff"
