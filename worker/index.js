@@ -8,6 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
+  "Cross-Origin-Resource-Policy": "cross-origin",
   Vary: "Origin"
 };
 
@@ -55,7 +56,7 @@ async function recordOpen(request, env) {
 
   await increment(env.DB, "web:opens", opens);
   await increment(env.DB, "web:standalone", homeScreen);
-  return new Response(null, { status: 204, headers: corsHeaders });
+  return json({ recorded: opens });
 }
 
 async function readApkDownloads(ctx) {
