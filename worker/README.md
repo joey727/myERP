@@ -3,7 +3,7 @@
 Cloudflare Worker that counts web app opens and exposes totals for the landing page.
 
 - `POST /open` with `{ opens, homeScreen }` increments the all-time counters in D1.
-- `GET /stats` returns `{ webOpens, webHomeScreen, apkDownloads }`. APK downloads are summed from the GitHub releases API and cached for an hour.
+- `GET /stats` returns `{ webOpens, webHomeScreen, downloads }`. Downloads are summed across every asset on every GitHub release and cached for an hour.
 
 The web app only reports when `EXPO_PUBLIC_USAGE_URL` is set at build time, and the landing page reads the same Worker. Nothing else is collected.
 

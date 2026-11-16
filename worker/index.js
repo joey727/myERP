@@ -1,7 +1,7 @@
 const ALLOWED_ORIGIN = "https://joey727.github.io";
 const RELEASES_API = "https://api.github.com/repos/joey727/myERP/releases?per_page=100";
-const APK_CACHE_KEY = "https://myerp-usage.internal/apk-downloads";
-const APK_CACHE_SECONDS = 3600;
+const DOWNLOADS_CACHE_KEY = "https://myerp-usage.internal/downloads";
+const DOWNLOADS_CACHE_SECONDS = 3600;
 const MAX_OPENS_PER_REQUEST = 10;
 
 const corsHeaders = {
@@ -59,9 +59,9 @@ async function recordOpen(request, env) {
   return json({ recorded: opens });
 }
 
-async function readApkDownloads(ctx) {
+async function readDownloads(ctx) {
   const cache = caches.default;
-  const cached = await cache.match(APK_CACHE_KEY);
+  const cached = await cache.match(DOWNLOADS_CACHE_KEY);
   if (cached) return (await cached.json()).total;
 
   const response = await fetch(RELEASES_API, {
@@ -80,9 +80,8 @@ async function readApkDownloads(ctx) {
     return (
       sum +
       assets.reduce((assetSum, asset) => {
-        const name = typeof asset?.name === "string" ? asset.name.toLowerCase() : "";
         const count = Number(asset?.download_count);
-        return name.endsWith(".apk") && Number.isFinite(count) ? assetSum + count : assetSum;
+        return Number.isFinite(count) ? assetSum + count : assetSum;
       }, 0)
     );
   }, 0);
@@ -90,23 +89,23 @@ async function readApkDownloads(ctx) {
   const cachedResponse = new Response(JSON.stringify({ total }), {
     headers: {
       "Content-Type": "application/json",
-      "Cache-Control": `max-age=${APK_CACHE_SECONDS}`
+      "Cache-Control": `max-age=${DOWNLOADS_CACHE_SECONDS}`
     }
   });
-  ctx.waitUntil(cache.put(APK_CACHE_KEY, cachedResponse.clone()));
+  ctx.waitUntil(cache.put(DOWNLOADS_CACHE_KEY, cachedResponse.clone()));
   return total;
 }
 
 async function readStats(env, ctx) {
   const { results } = await env.DB.prepare("SELECT name, value FROM counters").all();
   const counters = Object.fromEntries((results ?? []).map((row) => [row.name, row.value]));
-  const apkDownloads = await readApkDownloads(ctx).catch(() => null);
+  const downloads = await readDownloads(ctx).catch(() => null);
 
   return json(
     {
       webOpens: counters["web:opens"] ?? 0,
       webHomeScreen: counters["web:standalone"] ?? 0,
-      apkDownloads
+      downloads
     },
     200,
     { "Cache-Control": "public, max-age=60" }

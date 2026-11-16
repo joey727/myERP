@@ -918,7 +918,7 @@
               Download APK
             </a>
             <p class="install-note">Requires Android 8 or newer. Updates install over the top; your local data stays in place.</p>
-            <p class="install-stat" id="apk-stats" hidden></p>
+            <p class="install-stat" id="download-stats" hidden></p>
           </article>
 
           <article class="install-card">
@@ -1104,7 +1104,7 @@ npm run ios</code></pre>
         if (!stats) return;
 
         const webStats = document.getElementById("web-app-stats");
-        const apkStats = document.getElementById("apk-stats");
+        const downloadStats = document.getElementById("download-stats");
 
         if (webStats && stats.webOpens > 0) {
           const opens = numberFormat.format(stats.webOpens);
@@ -1114,10 +1114,10 @@ npm run ios</code></pre>
           webStats.textContent = `${opens} app ${stats.webOpens === 1 ? "open" : "opens"}${homeScreen}`;
           webStats.hidden = false;
         }
-        if (apkStats && stats.apkDownloads > 0) {
-          const downloads = numberFormat.format(stats.apkDownloads);
-          apkStats.textContent = `${downloads} APK ${stats.apkDownloads === 1 ? "download" : "downloads"}`;
-          apkStats.hidden = false;
+        if (downloadStats && stats.downloads > 0) {
+          const downloads = numberFormat.format(stats.downloads);
+          downloadStats.textContent = `${downloads} app ${stats.downloads === 1 ? "download" : "downloads"}`;
+          downloadStats.hidden = false;
         }
       })
       .catch(() => {});
