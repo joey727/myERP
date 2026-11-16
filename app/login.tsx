@@ -1,171 +1,258 @@
-import { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Platform, Pressable, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSequence,
+  withTiming
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { login } from "@/auth/session";
-import { colors, fontSize, radius } from "@/ui/theme";
+import { useBusiness } from "@/business";
+import { createStyles, useTheme } from "@/ui/design";
+import { AppText } from "@/ui/primitives";
+
+const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "blank", "0", "back"];
 
 export default function LoginScreen() {
+  const styles = useLoginStyles();
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
+  const { business } = useBusiness();
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const shake = useSharedValue(0);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shake.get() }]
+  }));
 
-  const handleNumberPress = async (num: string) => {
-    if (pin.length >= 4) return;
-    const newPin = pin + num;
-    setPin(newPin);
-    setError(false);
-
-    if (newPin.length >= 4) {
-      setLoading(true);
-      const staff = await login(newPin);
-      setLoading(false);
-
-      if (staff) {
-        router.replace("/(tabs)");
-        return;
-      } else {
-        setError(true);
-        setPin("");
-        setTimeout(() => setError(false), 500);
-      }
+  function fail() {
+    setError(true);
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    if (!reduceMotion) {
+      shake.set(
+        withSequence(
+          withTiming(-8, { duration: 55 }),
+          withTiming(8, { duration: 55 }),
+          withTiming(-5, { duration: 55 }),
+          withTiming(5, { duration: 55 }),
+          withTiming(0, { duration: 55 })
+        )
+      );
     }
-  };
+    setTimeout(() => {
+      setPin("");
+      setError(false);
+    }, 420);
+  }
 
-  const handleBackspace = () => {
-    setPin(pin.slice(0, -1));
-    setError(false);
-  };
+  function press(key: string) {
+    if (loading || error) return;
+    if (key === "back") {
+      void Haptics.selectionAsync();
+      setPin((current) => current.slice(0, -1));
+      return;
+    }
+    if (pin.length >= 4) return;
+    void Haptics.selectionAsync();
+    const next = pin + key;
+    setPin(next);
+    if (next.length === 4) {
+      setLoading(true);
+      login(next)
+        .then((staff) => {
+          setLoading(false);
+          if (staff) {
+            router.replace("/(tabs)");
+            return;
+          }
+          fail();
+        })
+        .catch(() => {
+          setLoading(false);
+          fail();
+        });
+    }
+  }
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key >= "0" && event.key <= "9") press(event.key);
+      if (event.key === "Backspace") press("back");
+    }
+    if (Platform.OS === "web") {
+      window.addEventListener("keydown", onKeyDown);
+      return () => window.removeEventListener("keydown", onKeyDown);
+    }
+  });
 
   return (
-    <View style={styles.container}>
-      <View style={{ gap: 8 }}>
-        <Text style={styles.title}>myERP</Text>
-        <Text style={styles.subtitle}>Enter your PIN to continue</Text>
-      </View>
+    <View style={styles.root}>
+      <View
+        style={[
+          styles.content,
+          { paddingBottom: insets.bottom + 24, paddingTop: insets.top + 32 }
+        ]}
+      >
+        <View style={styles.brand}>
+          <View style={styles.brandText}>
+            <AppText center variant="title1">
+              {business?.name ?? "myERP"}
+            </AppText>
+            <AppText center tone="secondary" variant="small">
+              Enter your PIN to open the till
+            </AppText>
+          </View>
+        </View>
 
-      <View style={{ flexDirection: "row", gap: 16 }}>
-        {[0, 1, 2, 3].map((i) => (
+        <Animated.View style={[styles.pinArea, animatedStyle]}>
           <View
-            key={i}
-            style={[
-              styles.dot,
-              pin.length > i ? styles.dotFilled : null,
-              error ? styles.dotError : null
-            ]}
-          />
-        ))}
-      </View>
+            accessibilityLabel={`${pin.length} of 4 digits entered`}
+            accessibilityLiveRegion="polite"
+            style={styles.dots}
+          >
+            {[0, 1, 2, 3].map((index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  pin.length > index && styles.dotFilled,
+                  error && styles.dotError
+                ]}
+              />
+            ))}
+          </View>
+          <View style={styles.status}>
+            {loading ? (
+              <View style={styles.statusRow}>
+                <ActivityIndicator color={theme.colors.primary} size="small" />
+                <AppText tone="secondary" variant="small">
+                  Checking PIN
+                </AppText>
+              </View>
+            ) : error ? (
+              <AppText tone="danger" variant="smallStrong">
+                Incorrect PIN. Try again.
+              </AppText>
+            ) : (
+              <AppText tone="muted" variant="small">
+                Every person has their own PIN
+              </AppText>
+            )}
+          </View>
+        </Animated.View>
 
-      {loading && <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />}
-
-      {error && (
-        <Text style={styles.error}>Incorrect PIN. Try again.</Text>
-      )}
-
-      <View style={styles.keypad}>
-        {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "back"].map((key, i) => {
-          if (key === "") {
-            return <View key={i} style={styles.keyEmpty} />;
-          }
-          if (key === "back") {
+        <View style={styles.keypad}>
+          {keys.map((key) => {
+            if (key === "blank") {
+              return <View key={key} style={styles.keyBlank} />;
+            }
             return (
               <Pressable
-                key={i}
-                onPress={handleBackspace}
+                accessibilityLabel={key === "back" ? "Delete digit" : key}
+                accessibilityRole="button"
+                key={key}
+                onPress={() => press(key)}
                 style={({ pressed }) => [styles.key, pressed && styles.keyPressed]}
               >
-                <Text style={styles.keyText}>&#9003;</Text>
+                {key === "back" ? (
+                  <Ionicons
+                    color={theme.colors.inkSecondary}
+                    name="backspace-outline"
+                    size={24}
+                  />
+                ) : (
+                  <AppText variant="title2">{key}</AppText>
+                )}
               </Pressable>
             );
-          }
-          return (
-            <Pressable
-              key={i}
-              onPress={() => handleNumberPress(key)}
-              style={({ pressed }) => [styles.key, pressed && styles.keyPressed]}
-            >
-              <Text style={styles.keyText}>{key}</Text>
-            </Pressable>
-          );
-        })}
+          })}
+        </View>
+
+        <View style={styles.footer}>
+          <Ionicons color={theme.colors.muted} name="cloud-offline-outline" size={14} />
+          <AppText tone="muted" variant="caption">
+            Works without internet
+          </AppText>
+        </View>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
+const loginStyles = createStyles((theme) => ({
+  root: {
+    backgroundColor: theme.colors.background,
     flex: 1,
-    backgroundColor: colors.background,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-    gap: 40
-  },
-  title: {
-    color: colors.ink,
-    fontSize: fontSize["4xl"],
-    fontWeight: "900",
-    letterSpacing: 0,
-    textAlign: "center"
-  },
-  subtitle: {
-    color: colors.muted,
-    fontSize: fontSize.lg,
-    textAlign: "center"
-  },
-  dot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.panel
-  },
-  dotFilled: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary
-  },
-  dotError: {
-    borderColor: colors.warning,
-    backgroundColor: colors.warning
-  },
-  error: {
-    color: colors.warning,
-    fontSize: fontSize.md,
-    fontWeight: "700"
-  },
-  keypad: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    width: 280,
     justifyContent: "center"
   },
-  key: {
-    width: 80,
-    height: 64,
-    alignItems: "center",
+  content: {
+    alignSelf: "center",
+    flex: 1,
+    gap: theme.space["2xl"],
     justifyContent: "center",
-    margin: 4,
-    borderRadius: radius.lg,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border
+    maxWidth: 380,
+    paddingHorizontal: theme.space.xl,
+    width: "100%"
   },
-  keyEmpty: {
-    width: 80,
+  brand: { alignItems: "center", gap: theme.space.md },
+  brandText: { gap: theme.space.xxs },
+  pinArea: { alignItems: "center", gap: theme.space.sm },
+  dots: { flexDirection: "row", gap: theme.space.md },
+  dot: {
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.borderStrong,
+    borderRadius: theme.radius.full,
+    borderWidth: 1.5,
+    height: 16,
+    width: 16
+  },
+  dotFilled: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary
+  },
+  dotError: {
+    backgroundColor: theme.colors.danger,
+    borderColor: theme.colors.danger
+  },
+  status: { alignItems: "center", minHeight: 22, justifyContent: "center" },
+  statusRow: { alignItems: "center", flexDirection: "row", gap: theme.space.xs },
+  keypad: {
+    alignSelf: "center",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.space.xs,
+    justifyContent: "center",
+    maxWidth: 300
+  },
+  key: {
+    alignItems: "center",
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
     height: 64,
-    margin: 4
+    justifyContent: "center",
+    width: "30%"
   },
   keyPressed: {
-    backgroundColor: colors.panelAlt,
-    borderColor: colors.primary
+    backgroundColor: theme.colors.primarySoft,
+    borderColor: theme.colors.primary
   },
-  keyText: {
-    color: colors.ink,
-    fontSize: 28,
-    fontWeight: "700"
+  keyBlank: { height: 64, width: "30%" },
+  footer: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 6,
+    justifyContent: "center"
   }
-});
+}));
+const useLoginStyles = () => loginStyles();
