@@ -78,6 +78,19 @@ function downloadFor(assets: ReleaseAsset[], releaseUrl: string) {
   return { downloadUrl: releaseUrl, downloadLabel: "Open releases" };
 }
 
+function formatReleaseNotes(body: string | undefined | null) {
+  if (!body) return null;
+  const text = body
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/^[-*]\s+/gm, "• ")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/\r/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return text || null;
+}
+
 export async function checkForUpdate(): Promise<UpdateCheck> {
   if (Platform.OS === "web") {
     return { status: "current", currentVersion: APP_VERSION };
@@ -110,7 +123,7 @@ export async function checkForUpdate(): Promise<UpdateCheck> {
       update: {
         currentVersion: APP_VERSION,
         latestVersion: latestVersion.replace(/^v/i, ""),
-        notes: release.body?.trim() || null,
+        notes: formatReleaseNotes(release.body),
         publishedAt: release.published_at ?? null,
         releaseUrl,
         ...downloadFor(release.assets ?? [], releaseUrl)

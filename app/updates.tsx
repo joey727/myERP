@@ -131,7 +131,11 @@ export default function UpdatesScreen() {
             {result.update.notes ? (
               <View style={styles.notes}>
                 <AppText variant="label">What is new</AppText>
-                <AppText tone="secondary" variant="small">
+                <AppText
+                  numberOfLines={8}
+                  tone="secondary"
+                  variant="small"
+                >
                   {result.update.notes}
                 </AppText>
               </View>
@@ -246,7 +250,7 @@ const updatesStyles = createStyles((theme) => ({
     backgroundColor: theme.colors.surfaceAlt,
     borderRadius: theme.radius.sm,
     gap: theme.space.xxs,
-    maxHeight: 220,
+    overflow: "hidden",
     padding: theme.space.sm
   },
   notice: {
