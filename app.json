@@ -2,31 +2,35 @@
   "expo": {
     "name": "myERP",
     "slug": "myerp",
-    "version": "0.1.0",
-    "orientation": "portrait",
+    "version": "0.2.0",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F7F3EC"
     },
     "scheme": "myerp",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "requireFullScreen": false,
       "bundleIdentifier": "com.myerp.app",
       "infoPlist": {
         "NSCameraUsageDescription": "myERP uses the camera to scan product barcodes."
-      }
+      },
+      "buildNumber": "2"
     },
     "android": {
       "package": "com.myerp.app",
+      "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "CAMERA",
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "versionCode": 2
     },
     "web": {
       "bundler": "metro"

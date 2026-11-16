@@ -1,6 +1,6 @@
 {
   "name": "myerp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
@@ -19,6 +19,7 @@
     "expo-camera": "~17.0.9",
     "expo-crypto": "~15.0.9",
     "expo-file-system": "~19.0.22",
+    "expo-haptics": "~15.0.8",
     "expo-print": "~15.0.8",
     "expo-router": "~6.0.14",
     "expo-secure-store": "~15.0.8",
@@ -29,7 +30,6 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
-    "react-native-chart-kit": "^6.12.2",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",
@@ -46,7 +46,10 @@
     "typescript": "~5.9.2"
   },
   "knip": {
-    "ignore": ["babel.config.js", "public/coi-serviceworker.js"],
+    "ignore": [
+      "babel.config.js",
+      "public/coi-serviceworker.js"
+    ],
     "ignoreDependencies": [
       "expo-splash-screen",
       "babel-preset-expo",
