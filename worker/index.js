@@ -109,7 +109,7 @@ async function readStats(env, ctx) {
       apkDownloads
     },
     200,
-    { "Cache-Control": "public, max-age=300" }
+    { "Cache-Control": "public, max-age=60" }
   );
 }
 
