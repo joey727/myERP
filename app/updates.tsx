@@ -90,7 +90,6 @@ export default function UpdatesScreen() {
     <Screen maxWidth={isCompact ? 720 : 900}>
       <View style={styles.head}>
         <View style={styles.headText}>
-          <AppText variant="title2">App updates</AppText>
           <AppText tone="secondary" variant="small">
             Keep the till current without losing the data on this device.
           </AppText>
