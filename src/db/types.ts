@@ -4,6 +4,11 @@ export type Business = {
   category: string;
   currency: string;
   taxRate: number;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  taxId: string | null;
+  receiptFooter: string | null;
   createdAt: string;
 };
 
@@ -99,7 +104,15 @@ export type PaymentBreakdown = {
   total: number;
 };
 
-type StockMovementReason = "sale" | "restock" | "adjustment" | "void";
+export type StockMovementReason = "sale" | "restock" | "adjustment" | "void" | "audit";
+
+export type StockAuditReason =
+  | "damaged"
+  | "missing"
+  | "found"
+  | "supplier"
+  | "miscount"
+  | "other";
 
 export type StockMovement = {
   id: number;
@@ -107,7 +120,24 @@ export type StockMovement = {
   productName: string;
   change: number;
   reason: StockMovementReason;
+  varianceReason: StockAuditReason | null;
+  staffId: number | null;
+  staffName: string | null;
+  note: string | null;
   createdAt: string;
+};
+
+export type StockAuditSummary = {
+  productCount: number;
+  unitsInStock: number;
+  costValue: number;
+  retailValue: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+  movementCount: number;
+  auditCount: number;
+  auditChange: number;
+  lastAuditAt: string | null;
 };
 
 export type SaleItemWithReceipt = SaleItem & { receiptNumber: string };
@@ -115,4 +145,15 @@ export type SaleItemWithReceipt = SaleItem & { receiptNumber: string };
 export type CustomerSummary = Customer & {
   lastSaleAt: string | null;
   lastSaleTotal: number;
+};
+
+export type CustomerStats = {
+  count: number;
+  lifetimeValue: number;
+  repeatBuyers: number;
+};
+
+export type ProductStats = {
+  count: number;
+  lowStockCount: number;
 };

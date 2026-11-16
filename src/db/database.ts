@@ -5,19 +5,23 @@ import { hashPin } from "@/lib/pin";
 import type {
   Business,
   Customer,
+  CustomerStats,
   CustomerSummary,
   DailyRevenue,
   DashboardSummary,
   PaymentMethod,
   PaymentBreakdown,
   Product,
+  ProductStats,
   Sale,
   SaleItem,
   SaleItemWithReceipt,
   StaffMember,
   StaffRole,
   StaffStats,
+  StockAuditSummary,
   StockMovement,
+  StockMovementReason,
   TopProduct
 } from "./types";
 
@@ -64,6 +68,11 @@ export async function initializeDatabase() {
       category TEXT NOT NULL,
       currency TEXT NOT NULL DEFAULT 'GHS',
       tax_rate REAL NOT NULL DEFAULT 0,
+      phone TEXT,
+      email TEXT,
+      address TEXT,
+      tax_id TEXT,
+      receipt_footer TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -129,19 +138,33 @@ export async function initializeDatabase() {
     );
   `);
 
+  await addColumn(db, "businesses", "phone", "TEXT");
+  await addColumn(db, "businesses", "email", "TEXT");
+  await addColumn(db, "businesses", "address", "TEXT");
+  await addColumn(db, "businesses", "tax_id", "TEXT");
+  await addColumn(db, "businesses", "receipt_footer", "TEXT");
   await addColumn(db, "sales", "tax", "REAL NOT NULL DEFAULT 0");
   await addColumn(db, "sales", "voided", "INTEGER NOT NULL DEFAULT 0");
+  await addColumn(db, "stock_movements", "staff_id", "INTEGER");
+  await addColumn(db, "stock_movements", "note", "TEXT");
+  await addColumn(db, "stock_movements", "variance_reason", "TEXT");
 
   await db.execAsync(`UPDATE staff SET role = 'cashier' WHERE role = 'inventory';`);
 
   await db.execAsync(`
     CREATE INDEX IF NOT EXISTS idx_sales_created_at ON sales(created_at);
     CREATE INDEX IF NOT EXISTS idx_sales_voided ON sales(voided);
+    CREATE INDEX IF NOT EXISTS idx_sales_payment_method ON sales(payment_method);
     CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
     CREATE INDEX IF NOT EXISTS idx_sale_items_product_id ON sale_items(product_id);
     CREATE INDEX IF NOT EXISTS idx_products_name ON products(name COLLATE NOCASE);
+    CREATE INDEX IF NOT EXISTS idx_products_category ON products(category COLLATE NOCASE);
+    CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode);
     CREATE INDEX IF NOT EXISTS idx_sales_customer_phone ON sales(customer_phone);
+    CREATE INDEX IF NOT EXISTS idx_sales_customer_created ON sales(customer_phone, created_at);
     CREATE INDEX IF NOT EXISTS idx_stock_movements_product ON stock_movements(product_id);
+    CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON stock_movements(created_at DESC, id DESC);
+    CREATE INDEX IF NOT EXISTS idx_stock_movements_reason ON stock_movements(reason, created_at DESC);
   `);
 }
 
@@ -164,6 +187,11 @@ function businessFromRow(row: Record<string, unknown>): Business {
     category: String(row.category),
     currency: String(row.currency),
     taxRate: Number(row.tax_rate),
+    phone: row.phone ? String(row.phone) : null,
+    email: row.email ? String(row.email) : null,
+    address: row.address ? String(row.address) : null,
+    taxId: row.tax_id ? String(row.tax_id) : null,
+    receiptFooter: row.receipt_footer ? String(row.receipt_footer) : null,
     createdAt: String(row.created_at)
   };
 }
@@ -226,6 +254,23 @@ function saleItemFromRow(row: Record<string, unknown>): SaleItem {
   };
 }
 
+function stockMovementFromRow(row: Record<string, unknown>): StockMovement {
+  return {
+    id: Number(row.id),
+    productId: Number(row.product_id),
+    productName: String(row.product_name),
+    change: Number(row.change),
+    reason: String(row.reason) as StockMovementReason,
+    varianceReason: row.variance_reason
+      ? (String(row.variance_reason) as StockMovement["varianceReason"])
+      : null,
+    staffId: row.staff_id ? Number(row.staff_id) : null,
+    staffName: row.staff_name ? String(row.staff_name) : null,
+    note: row.note ? String(row.note) : null,
+    createdAt: String(row.created_at)
+  };
+}
+
 export async function getBusiness() {
   const db = await database();
   const row = await db.getFirstAsync<Record<string, unknown>>("SELECT * FROM businesses ORDER BY id LIMIT 1");
@@ -237,13 +282,18 @@ export async function updateBusiness(input: {
   category?: string;
   currency?: string;
   taxRate?: number;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  taxId?: string | null;
+  receiptFooter?: string | null;
 }) {
   const db = await database();
   const current = await getBusiness();
   if (!current) return;
 
   const updates: string[] = [];
-  const values: (string | number)[] = [];
+  const values: (string | number | null)[] = [];
 
   if (input.name !== undefined) {
     updates.push("name = ?");
@@ -261,6 +311,26 @@ export async function updateBusiness(input: {
     updates.push("tax_rate = ?");
     values.push(input.taxRate);
   }
+  if (input.phone !== undefined) {
+    updates.push("phone = ?");
+    values.push(input.phone?.trim() || null);
+  }
+  if (input.email !== undefined) {
+    updates.push("email = ?");
+    values.push(input.email?.trim() || null);
+  }
+  if (input.address !== undefined) {
+    updates.push("address = ?");
+    values.push(input.address?.trim() || null);
+  }
+  if (input.taxId !== undefined) {
+    updates.push("tax_id = ?");
+    values.push(input.taxId?.trim() || null);
+  }
+  if (input.receiptFooter !== undefined) {
+    updates.push("receipt_footer = ?");
+    values.push(input.receiptFooter?.trim() || null);
+  }
 
   if (updates.length === 0) return;
 
@@ -274,6 +344,11 @@ export async function saveBusiness(input: {
   category: string;
   currency: string;
   taxRate: number;
+  phone: string;
+  email: string;
+  address: string;
+  taxId: string;
+  receiptFooter: string;
   ownerName: string;
   ownerPin: string;
 }): Promise<number> {
@@ -284,11 +359,18 @@ export async function saveBusiness(input: {
 
   await db.withTransactionAsync(async () => {
     await db.runAsync(
-      "INSERT INTO businesses (name, category, currency, tax_rate, created_at) VALUES (?, ?, ?, ?, ?)",
+      `INSERT INTO businesses
+       (name, category, currency, tax_rate, phone, email, address, tax_id, receipt_footer, created_at)
+       VALUES (?, ?, ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?)`,
       input.name,
       input.category,
       input.currency,
       input.taxRate,
+      input.phone.trim(),
+      input.email.trim(),
+      input.address.trim(),
+      input.taxId.trim(),
+      input.receiptFooter.trim(),
       now
     );
     const result = await db.runAsync(
@@ -308,6 +390,79 @@ export async function listProducts() {
   const db = await database();
   const rows = await db.getAllAsync<Record<string, unknown>>("SELECT * FROM products ORDER BY name COLLATE NOCASE");
   return rows.map(productFromRow);
+}
+
+export async function listProductsPage(input: {
+  limit: number;
+  offset: number;
+  search?: string;
+  category?: string | null;
+  lowOnly?: boolean;
+}): Promise<{ products: Product[]; total: number }> {
+  const db = await database();
+  const conditions: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (input.search?.trim()) {
+    const query = `%${input.search.trim()}%`;
+    conditions.push("(name LIKE ? OR category LIKE ? OR barcode LIKE ?)");
+    params.push(query, query, query);
+  }
+  if (input.category) {
+    conditions.push("category = ?");
+    params.push(input.category);
+  }
+  if (input.lowOnly) {
+    conditions.push("stock <= low_stock_at");
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const countRow = await db.getFirstAsync<Record<string, unknown>>(
+    `SELECT COUNT(*) AS count FROM products ${where}`,
+    ...params
+  );
+  const rows = await db.getAllAsync<Record<string, unknown>>(
+    `SELECT * FROM products ${where} ORDER BY name COLLATE NOCASE LIMIT ? OFFSET ?`,
+    ...params,
+    input.limit,
+    input.offset
+  );
+
+  return {
+    products: rows.map(productFromRow),
+    total: Number(countRow?.count ?? 0)
+  };
+}
+
+export async function getProductStats(): Promise<ProductStats> {
+  const db = await database();
+  const row = await db.getFirstAsync<Record<string, unknown>>(`
+    SELECT
+      COUNT(*) AS count,
+      COALESCE(SUM(CASE WHEN stock <= low_stock_at THEN 1 ELSE 0 END), 0) AS low_stock_count
+    FROM products
+  `);
+  return {
+    count: Number(row?.count ?? 0),
+    lowStockCount: Number(row?.low_stock_count ?? 0)
+  };
+}
+
+export async function listProductCategories(): Promise<string[]> {
+  const db = await database();
+  const rows = await db.getAllAsync<Record<string, unknown>>(
+    "SELECT DISTINCT category FROM products WHERE category <> '' ORDER BY category COLLATE NOCASE"
+  );
+  return rows.map((row) => String(row.category));
+}
+
+export async function getProductByBarcode(barcode: string): Promise<Product | null> {
+  const db = await database();
+  const row = await db.getFirstAsync<Record<string, unknown>>(
+    "SELECT * FROM products WHERE barcode = ? LIMIT 1",
+    barcode
+  );
+  return row ? productFromRow(row) : null;
 }
 
 export async function getProductById(id: number): Promise<Product | null> {
@@ -403,7 +558,23 @@ export async function updateProduct(id: number, input: {
 
   if (updates.length === 0) return;
 
-  await db.runAsync(`UPDATE products SET ${updates.join(", ")} WHERE id = ?`, ...values, id);
+  const current = input.stock !== undefined ? await getProductById(id) : null;
+  const now = new Date().toISOString();
+
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(`UPDATE products SET ${updates.join(", ")} WHERE id = ?`, ...values, id);
+
+    if (current && input.stock !== undefined && input.stock !== current.stock) {
+      await db.runAsync(
+        "INSERT INTO stock_movements (product_id, product_name, change, reason, note, created_at) VALUES (?, ?, ?, 'adjustment', ?, ?)",
+        id,
+        input.name ?? current.name,
+        input.stock - current.stock,
+        "Manual stock edit",
+        now
+      );
+    }
+  });
 }
 
 export async function deleteProduct(id: number) {
@@ -415,6 +586,12 @@ export async function listStaff() {
   const db = await database();
   const rows = await db.getAllAsync<Record<string, unknown>>("SELECT * FROM staff ORDER BY active DESC, name COLLATE NOCASE");
   return rows.map(staffFromRow);
+}
+
+export async function getStaffCount(): Promise<number> {
+  const db = await database();
+  const row = await db.getFirstAsync<Record<string, unknown>>("SELECT COUNT(*) AS count FROM staff");
+  return Number(row?.count ?? 0);
 }
 
 export async function addStaff(input: { name: string; role: StaffRole; pin: string }) {
@@ -530,10 +707,11 @@ export async function createSale(input: {
     for (const [productId, quantity] of quantities) {
       await db.runAsync("UPDATE products SET stock = stock - ? WHERE id = ?", quantity, productId);
       await db.runAsync(
-        "INSERT INTO stock_movements (product_id, product_name, change, reason, created_at) VALUES (?, ?, ?, 'sale', ?)",
+        "INSERT INTO stock_movements (product_id, product_name, change, reason, staff_id, created_at) VALUES (?, ?, ?, 'sale', ?, ?)",
         productId,
         productNames.get(productId)!,
         -quantity,
+        input.staffId,
         now.toISOString()
       );
     }
@@ -562,21 +740,42 @@ export async function createSale(input: {
 
 export async function getSaleWithItems(saleId: number) {
   const db = await database();
-  const saleRow = await db.getFirstAsync<Record<string, unknown>>("SELECT * FROM sales WHERE id = ?", saleId);
+  const saleRow = await db.getFirstAsync<Record<string, unknown>>(
+    `SELECT s.*, st.name AS staff_name
+     FROM sales s
+     LEFT JOIN staff st ON st.id = s.staff_id
+     WHERE s.id = ?`,
+    saleId
+  );
   const itemRows = await db.getAllAsync<Record<string, unknown>>("SELECT * FROM sale_items WHERE sale_id = ? ORDER BY id", saleId);
 
   return saleRow
     ? {
         sale: saleFromRow(saleRow),
-        items: itemRows.map(saleItemFromRow)
+        items: itemRows.map(saleItemFromRow),
+        staffName: saleRow.staff_name ? String(saleRow.staff_name) : null
       }
     : null;
 }
 
 export async function listRecentSales() {
   const db = await database();
-  const rows = await db.getAllAsync<Record<string, unknown>>("SELECT * FROM sales WHERE voided = 0 ORDER BY created_at DESC LIMIT 20");
+  const rows = await db.getAllAsync<Record<string, unknown>>(
+    "SELECT * FROM sales WHERE voided = 0 ORDER BY created_at DESC, id DESC LIMIT 5"
+  );
   return rows.map(saleFromRow);
+}
+
+export async function listLowStockProducts(limit = 3): Promise<Product[]> {
+  const db = await database();
+  const rows = await db.getAllAsync<Record<string, unknown>>(
+    `SELECT * FROM products
+     WHERE stock <= low_stock_at
+     ORDER BY stock ASC, name COLLATE NOCASE
+     LIMIT ?`,
+    limit
+  );
+  return rows.map(productFromRow);
 }
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
@@ -781,54 +980,107 @@ export async function listAllCustomers(): Promise<Customer[]> {
   return rows.map(customerFromRow);
 }
 
-export async function listCustomersWithLastSale(): Promise<CustomerSummary[]> {
+export async function getCustomerStats(): Promise<CustomerStats> {
   const db = await database();
-  const rows = await db.getAllAsync<Record<string, unknown>>(`
-    SELECT c.*,
+  const row = await db.getFirstAsync<Record<string, unknown>>(`
+    SELECT
+      COUNT(*) AS count,
+      COALESCE(SUM(total_spent), 0) AS lifetime_value,
+      COALESCE(SUM(CASE WHEN visit_count > 1 THEN 1 ELSE 0 END), 0) AS repeat_buyers
+    FROM customers
+  `);
+  return {
+    count: Number(row?.count ?? 0),
+    lifetimeValue: Number(row?.lifetime_value ?? 0),
+    repeatBuyers: Number(row?.repeat_buyers ?? 0)
+  };
+}
+
+export async function listCustomersPage(input: {
+  limit: number;
+  offset: number;
+  search?: string;
+}): Promise<{ customers: CustomerSummary[]; total: number }> {
+  const db = await database();
+  const search = input.search?.trim() ?? "";
+  const where = search ? "WHERE c.phone LIKE ? OR c.name LIKE ?" : "";
+  const params = search ? [`%${search}%`, `%${search}%`] : [];
+
+  const countRow = await db.getFirstAsync<Record<string, unknown>>(
+    `SELECT COUNT(*) AS count FROM customers c ${where}`,
+    ...params
+  );
+  const rows = await db.getAllAsync<Record<string, unknown>>(
+    `SELECT c.*,
       (SELECT created_at FROM sales WHERE customer_phone = c.phone AND voided = 0 ORDER BY created_at DESC LIMIT 1) AS last_sale_at,
       (SELECT total FROM sales WHERE customer_phone = c.phone AND voided = 0 ORDER BY created_at DESC LIMIT 1) AS last_sale_total
-    FROM customers c
-    ORDER BY c.total_spent DESC
-  `);
-  return rows.map((row) => ({
-    ...customerFromRow(row),
-    lastSaleAt: row.last_sale_at ? String(row.last_sale_at) : null,
-    lastSaleTotal: Number(row.last_sale_total ?? 0)
-  }));
+     FROM customers c
+     ${where}
+     ORDER BY c.total_spent DESC, c.id ASC
+     LIMIT ? OFFSET ?`,
+    ...params,
+    input.limit,
+    input.offset
+  );
+
+  return {
+    customers: rows.map((row) => ({
+      ...customerFromRow(row),
+      lastSaleAt: row.last_sale_at ? String(row.last_sale_at) : null,
+      lastSaleTotal: Number(row.last_sale_total ?? 0)
+    })),
+    total: Number(countRow?.count ?? 0)
+  };
 }
 
-export async function getCustomerCount(): Promise<number> {
+export async function listSales(input: {
+  limit?: number;
+  offset?: number;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+  paymentMethod?: PaymentMethod;
+} = {}): Promise<{ sales: Sale[]; total: number }> {
   const db = await database();
-  const row = await db.getFirstAsync<Record<string, unknown>>("SELECT COUNT(*) as count FROM customers");
-  return Number(row?.count ?? 0);
-}
-
-export async function listSales(limit: number = 50, offset: number = 0, startDate?: string, endDate?: string, search?: string): Promise<{ sales: Sale[]; total: number }> {
-  const db = await database();
+  const limit = input.limit ?? 50;
+  const offset = input.offset ?? 0;
   let whereClause = "voided = 0";
   const params: (string | number)[] = [];
 
-  if (startDate && endDate) {
+  if (input.startDate && input.endDate) {
     whereClause += " AND date(created_at) >= date(?) AND date(created_at) <= date(?)";
-    params.push(startDate, endDate);
+    params.push(input.startDate, input.endDate);
   }
 
-  if (search) {
+  if (input.search?.trim()) {
     whereClause += " AND receipt_number LIKE ?";
-    params.push(`%${search}%`);
+    params.push(`%${input.search.trim()}%`);
+  }
+
+  if (input.paymentMethod) {
+    whereClause += " AND payment_method = ?";
+    params.push(input.paymentMethod);
   }
 
   const countRow = await db.getFirstAsync<Record<string, unknown>>(`SELECT COUNT(*) as count FROM sales WHERE ${whereClause}`, ...params);
   const total = Number(countRow?.count ?? 0);
 
   const rows = await db.getAllAsync<Record<string, unknown>>(
-    `SELECT * FROM sales WHERE ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+    `SELECT * FROM sales WHERE ${whereClause} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
     ...params,
     limit,
     offset
   );
 
   return { sales: rows.map(saleFromRow), total };
+}
+
+export async function listAllSales(): Promise<Sale[]> {
+  const db = await database();
+  const rows = await db.getAllAsync<Record<string, unknown>>(
+    "SELECT * FROM sales ORDER BY created_at DESC, id DESC"
+  );
+  return rows.map(saleFromRow);
 }
 
 export async function listAllSaleItems(): Promise<SaleItemWithReceipt[]> {
@@ -845,17 +1097,129 @@ export async function listAllSaleItems(): Promise<SaleItemWithReceipt[]> {
 export async function listProductMovements(productId: number): Promise<StockMovement[]> {
   const db = await database();
   const rows = await db.getAllAsync<Record<string, unknown>>(
-    "SELECT * FROM stock_movements WHERE product_id = ? ORDER BY created_at DESC, id DESC LIMIT 50",
+    `SELECT sm.*, st.name AS staff_name
+     FROM stock_movements sm
+     LEFT JOIN staff st ON st.id = sm.staff_id
+     WHERE sm.product_id = ?
+     ORDER BY sm.created_at DESC, sm.id DESC
+     LIMIT 50`,
     productId
   );
-  return rows.map((row) => ({
-    id: Number(row.id),
-    productId: Number(row.product_id),
-    productName: String(row.product_name),
-    change: Number(row.change),
-    reason: String(row.reason) as StockMovement["reason"],
-    createdAt: String(row.created_at)
-  }));
+  return rows.map(stockMovementFromRow);
+}
+
+export async function listStockMovements(input: {
+  limit: number;
+  offset: number;
+  search?: string;
+  reason?: StockMovementReason;
+}): Promise<{ movements: StockMovement[]; total: number }> {
+  const db = await database();
+  const conditions: string[] = [];
+  const params: (string | number)[] = [];
+  const search = input.search?.trim() ?? "";
+
+  if (search) {
+    conditions.push("(sm.product_name LIKE ? OR sm.note LIKE ?)");
+    params.push(`%${search}%`, `%${search}%`);
+  }
+  if (input.reason) {
+    conditions.push("sm.reason = ?");
+    params.push(input.reason);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const countRow = await db.getFirstAsync<Record<string, unknown>>(
+    `SELECT COUNT(*) AS count FROM stock_movements sm ${where}`,
+    ...params
+  );
+  const rows = await db.getAllAsync<Record<string, unknown>>(
+    `SELECT sm.*, st.name AS staff_name
+     FROM stock_movements sm
+     LEFT JOIN staff st ON st.id = sm.staff_id
+     ${where}
+     ORDER BY sm.created_at DESC, sm.id DESC
+     LIMIT ? OFFSET ?`,
+    ...params,
+    input.limit,
+    input.offset
+  );
+
+  return {
+    movements: rows.map(stockMovementFromRow),
+    total: Number(countRow?.count ?? 0)
+  };
+}
+
+export async function getStockAuditSummary(): Promise<StockAuditSummary> {
+  const db = await database();
+  const products = await db.getFirstAsync<Record<string, unknown>>(`
+    SELECT
+      COUNT(*) AS product_count,
+      COALESCE(SUM(stock), 0) AS units_in_stock,
+      COALESCE(SUM(stock * cost_price), 0) AS cost_value,
+      COALESCE(SUM(stock * selling_price), 0) AS retail_value,
+      COALESCE(SUM(CASE WHEN stock <= low_stock_at THEN 1 ELSE 0 END), 0) AS low_stock_count,
+      COALESCE(SUM(CASE WHEN stock <= 0 THEN 1 ELSE 0 END), 0) AS out_of_stock_count
+    FROM products
+  `);
+  const movements = await db.getFirstAsync<Record<string, unknown>>(`
+    SELECT
+      COUNT(*) AS movement_count,
+      COALESCE(SUM(CASE WHEN reason = 'audit' THEN 1 ELSE 0 END), 0) AS audit_count,
+      COALESCE(SUM(CASE WHEN reason = 'audit' THEN change ELSE 0 END), 0) AS audit_change,
+      MAX(CASE WHEN reason = 'audit' THEN created_at END) AS last_audit_at
+    FROM stock_movements
+  `);
+
+  return {
+    productCount: Number(products?.product_count ?? 0),
+    unitsInStock: Number(products?.units_in_stock ?? 0),
+    costValue: Number(products?.cost_value ?? 0),
+    retailValue: Number(products?.retail_value ?? 0),
+    lowStockCount: Number(products?.low_stock_count ?? 0),
+    outOfStockCount: Number(products?.out_of_stock_count ?? 0),
+    movementCount: Number(movements?.movement_count ?? 0),
+    auditCount: Number(movements?.audit_count ?? 0),
+    auditChange: Number(movements?.audit_change ?? 0),
+    lastAuditAt: movements?.last_audit_at ? String(movements.last_audit_at) : null
+  };
+}
+
+export async function recordStockAudit(input: {
+  productId: number;
+  counted: number;
+  staffId?: number | null;
+  note?: string;
+  varianceReason?: StockMovement["varianceReason"];
+}): Promise<number | null> {
+  const product = await getProductById(input.productId);
+  if (!product || !Number.isInteger(input.counted) || input.counted < 0) {
+    return null;
+  }
+
+  const db = await database();
+  const change = input.counted - product.stock;
+  const now = new Date().toISOString();
+  const note = input.note?.trim() || null;
+
+  await db.withTransactionAsync(async () => {
+    await db.runAsync("UPDATE products SET stock = ? WHERE id = ?", input.counted, input.productId);
+    await db.runAsync(
+      `INSERT INTO stock_movements
+        (product_id, product_name, change, reason, variance_reason, staff_id, note, created_at)
+       VALUES (?, ?, ?, 'audit', ?, ?, ?, ?)`,
+      input.productId,
+      product.name,
+      change,
+      change === 0 ? null : input.varianceReason ?? null,
+      input.staffId ?? null,
+      note,
+      now
+    );
+  });
+
+  return change;
 }
 
 export async function restockProduct(productId: number, quantity: number, reason: "restock" | "adjustment" = "restock") {

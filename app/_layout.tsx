@@ -1,20 +1,31 @@
 import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { initializeDatabase, getBusiness, subscribeBusinessChange } from "@/db/database";
 import { useSession } from "@/auth/session";
-import { colors, fontSize } from "@/ui/theme";
+import type { Business } from "@/db/types";
+import { BusinessProvider } from "@/business";
+import { ThemeProvider, useTheme } from "@/ui/design";
+import { ConfirmHost } from "@/ui/hosts";
+import { AppText, Screen, ToastHost } from "@/ui/primitives";
 
-// Prevent auto-hide so we control when the splash dismisses
 SplashScreen.preventAutoHideAsync();
 
 function useAuth() {
   const [ready, setReady] = useState(false);
-  const [business, setBusiness] = useState<{ id: number } | null>(null);
+  const [business, setBusiness] = useState<Business | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
   const { staffId, loading } = useSession();
+
+  function refreshBusiness() {
+    getBusiness()
+      .then(setBusiness)
+      .catch((err) => console.error("getBusiness failed:", err));
+  }
 
   useEffect(() => {
     if (loading) return;
@@ -45,26 +56,17 @@ function useAuth() {
   }, [loading]);
 
   useEffect(() => {
-    const refresh = async () => {
-      try {
-        const b = await getBusiness();
-        setBusiness(b);
-      } catch (err) {
-        console.error("getBusiness failed:", err);
-      }
-    };
-    return subscribeBusinessChange(refresh);
+    return subscribeBusinessChange(refreshBusiness);
   }, []);
 
-  return { ready, business, staffId, loading, initError };
+  return { ready, business, staffId, loading, initError, refreshBusiness };
 }
 
 export default function RootLayout() {
-  const { ready, business, staffId, loading, initError } = useAuth();
+  const { ready, business, staffId, loading, initError, refreshBusiness } = useAuth();
   const router = useRouter();
   const segments = useSegments();
 
-  // Hide the splash screen once initialization is complete
   useEffect(() => {
     if (ready && !loading) {
       SplashScreen.hideAsync();
@@ -91,52 +93,72 @@ export default function RootLayout() {
     if (business && staffId && (isSetup || isLogin)) {
       router.replace("/(tabs)");
     }
-  }, [ready, business, staffId, loading, segments]);
+  }, [ready, business, staffId, loading, segments, router]);
 
-  if (initError) {
-    return (
-      <View style={{ flex: 1, padding: 24, justifyContent: "center", backgroundColor: colors.background }}>
-        <Text style={{ color: colors.ink, fontSize: fontSize.xl, fontWeight: "800", marginBottom: 12 }}>
-          Database error
-        </Text>
-        <Text style={{ color: colors.muted, fontSize: fontSize.base, lineHeight: 22 }}>
-          {initError}
-        </Text>
-        <Text style={{ color: colors.muted, fontSize: fontSize.sm, marginTop: 16 }}>
-          Cross-Origin Isolation may be required. Make sure SharedArrayBuffer is available (try a hard refresh).
-        </Text>
-      </View>
-    );
-  }
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <BusinessProvider business={business} refresh={refreshBusiness}>
+            {initError ? (
+              <DatabaseError message={initError} />
+            ) : !ready || loading ? null : (
+              <RootNavigator />
+            )}
+          </BusinessProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
 
-  // Return null while loading — the splash screen stays visible
-  if (!ready || loading) {
-    return null;
-  }
+function RootNavigator() {
+  const theme = useTheme();
 
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style={theme.name === "dark" ? "light" : "dark"} />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.ink,
-          headerTitleStyle: { fontWeight: "800" },
+          contentStyle: { backgroundColor: theme.colors.background },
           headerBackTitle: "",
-          headerShadowVisible: false
+          headerBackButtonDisplayMode: "minimal",
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: theme.colors.background },
+          headerTintColor: theme.colors.ink,
+          headerTitleStyle: { fontWeight: "600" }
         }}
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="scan" options={{ title: "Scan barcode" }} />
+        <Stack.Screen name="scan" options={{ headerShown: false }} />
         <Stack.Screen name="receipt/[id]" options={{ title: "Receipt" }} />
         <Stack.Screen name="product/[id]" options={{ title: "Product" }} />
-        <Stack.Screen name="staff/[id]" options={{ title: "Staff" }} />
-        <Stack.Screen name="history" options={{ title: "Sales History" }} />
+        <Stack.Screen name="staff/[id]" options={{ title: "Staff member" }} />
+        <Stack.Screen name="history" options={{ title: "Sales history" }} />
+        <Stack.Screen name="audit" options={{ title: "Stock audit" }} />
         <Stack.Screen name="settings" options={{ title: "Settings" }} />
-        <Stack.Screen name="backup" options={{ title: "Backup" }} />
+        <Stack.Screen name="backup" options={{ title: "Backup and export" }} />
+        <Stack.Screen name="updates" options={{ title: "App updates" }} />
       </Stack>
+      <ToastHost />
+      <ConfirmHost />
     </>
+  );
+}
+
+function DatabaseError({ message }: { message: string }) {
+  return (
+    <Screen safeTop>
+      <View style={{ gap: 8 }}>
+        <AppText variant="title1">Database error</AppText>
+        <AppText tone="secondary">{message}</AppText>
+        <AppText tone="muted" variant="small">
+          Cross-origin isolation may be required. Make sure SharedArrayBuffer is
+          available, then reload the app.
+        </AppText>
+      </View>
+    </Screen>
   );
 }

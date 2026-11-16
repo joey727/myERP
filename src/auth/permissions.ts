@@ -13,6 +13,7 @@ export type Permission =
   | "customers:view"
   | "settings:edit"
   | "data:export"
+  | "audit:view"
   | "reports:view";
 
 const rolePermissions: Record<StaffRole, Permission[]> = {
@@ -29,6 +30,7 @@ const rolePermissions: Record<StaffRole, Permission[]> = {
     "customers:view",
     "settings:edit",
     "data:export",
+    "audit:view",
     "reports:view",
   ],
   manager: [
@@ -43,9 +45,8 @@ const rolePermissions: Record<StaffRole, Permission[]> = {
     "staff:delete",
     "customers:view",
     "data:export",
-    "reports:view",
   ],
-  cashier: ["sales:process", "reports:view"],
+  cashier: ["sales:process"],
 };
 
 export function canAccess(role: StaffRole, permission: Permission): boolean {

@@ -1,205 +1,353 @@
-import { useEffect, useState } from "react";
-import { Platform, ScrollView, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { File, Paths } from "expo-file-system";
+import { router } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { Platform, View } from "react-native";
 
-import { useSession } from "@/auth/session";
 import { canAccess } from "@/auth/permissions";
-import { getBusiness, listProducts, listStaff, listSales, listAllCustomers, listAllSaleItems } from "@/db/database";
+import { useSession } from "@/auth/session";
+import { useBusiness } from "@/business";
+import {
+  listAllCustomers,
+  listAllSaleItems,
+  listAllSales,
+  listProducts,
+  listStaff
+} from "@/db/database";
 import type { StaffRole } from "@/db/types";
-import { PrimaryButton, Screen, SecondaryButton } from "@/ui/components";
 import { notify } from "@/ui/dialog";
-import { colors, fontSize } from "@/ui/theme";
+import { createStyles, useResponsive, useTheme } from "@/ui/design";
+import { AppText, Button, Screen, Surface } from "@/ui/primitives";
 
 function convertToCSV(data: Record<string, unknown>[], headers: string[]): string {
   if (data.length === 0) return "";
   const headerRow = headers.join(",");
-  const rows = data.map(row =>
-    headers.map(h => {
-      const value = row[h];
-      if (value === null || value === undefined) return "";
-      const str = String(value);
-      if (str.includes(",") || str.includes('"') || str.includes("\n")) {
-        return `"${str.replace(/"/g, '""')}"`;
-      }
-      return str;
-    }).join(",")
+  const rows = data.map((row) =>
+    headers
+      .map((header) => {
+        const value = row[header];
+        if (value === null || value === undefined) return "";
+        const stringValue = String(value);
+        if (
+          stringValue.includes(",") ||
+          stringValue.includes('"') ||
+          stringValue.includes("\n")
+        ) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      })
+      .join(",")
   );
   return [headerRow, ...rows].join("\n");
 }
 
+function downloadCsvOnWeb(csv: string, filename: string) {
+  if (typeof document === "undefined") return;
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+}
+
 export default function BackupScreen() {
-  const router = useRouter();
+  const styles = useBackupStyles();
+  const theme = useTheme();
+  const { isCompact } = useResponsive();
   const { staffRole } = useSession();
+  const { business } = useBusiness();
   const role = (staffRole ?? "cashier") as StaffRole;
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
-    if (!canAccess(role, "data:export")) {
-      router.back();
-    }
-  }, [role, router]);
+    if (!canAccess(role, "data:export")) router.back();
+  }, [role]);
 
   async function handleExport() {
     setExporting(true);
-
     try {
-      const [business, products, staff, salesResult, customers, allSaleItems] = await Promise.all([
-        getBusiness(),
-        listProducts(),
-        listStaff(),
-        listSales(1000, 0),
-        listAllCustomers(),
-        listAllSaleItems()
-      ]);
+      const [products, staff, sales, customers, allSaleItems] =
+        await Promise.all([
+          listProducts(),
+          listStaff(),
+          listAllSales(),
+          listAllCustomers(),
+          listAllSaleItems()
+        ]);
 
       const csvParts: string[] = [];
 
       if (business) {
         csvParts.push("=== BUSINESS ===");
-        const businessData = [{
-          id: business.id,
-          name: business.name,
-          category: business.category,
-          currency: business.currency,
-          tax_rate: business.taxRate,
-          created_at: business.createdAt
-        }];
-        csvParts.push(convertToCSV(businessData, ["id", "name", "category", "currency", "tax_rate", "created_at"]));
+        csvParts.push(
+          convertToCSV(
+            [
+              {
+                id: business.id,
+                name: business.name,
+                category: business.category,
+                phone: business.phone || "",
+                email: business.email || "",
+                address: business.address || "",
+                tax_id: business.taxId || "",
+                receipt_footer: business.receiptFooter || "",
+                currency: business.currency,
+                tax_rate: business.taxRate,
+                created_at: business.createdAt
+              }
+            ],
+            [
+              "id",
+              "name",
+              "category",
+              "phone",
+              "email",
+              "address",
+              "tax_id",
+              "receipt_footer",
+              "currency",
+              "tax_rate",
+              "created_at"
+            ]
+          )
+        );
         csvParts.push("");
       }
 
       csvParts.push("=== PRODUCTS ===");
-      if (products.length > 0) {
-        csvParts.push(convertToCSV(products.map(p => ({
-          id: p.id,
-          name: p.name,
-          category: p.category,
-          barcode: p.barcode || "",
-          cost_price: p.costPrice,
-          selling_price: p.sellingPrice,
-          stock: p.stock,
-          low_stock_at: p.lowStockAt,
-          created_at: p.createdAt
-        })), ["id", "name", "category", "barcode", "cost_price", "selling_price", "stock", "low_stock_at", "created_at"]));
-      }
+      csvParts.push(
+        convertToCSV(
+          products.map((product) => ({
+            id: product.id,
+            name: product.name,
+            category: product.category,
+            barcode: product.barcode || "",
+            cost_price: product.costPrice,
+            selling_price: product.sellingPrice,
+            stock: product.stock,
+            low_stock_at: product.lowStockAt,
+            created_at: product.createdAt
+          })),
+          [
+            "id",
+            "name",
+            "category",
+            "barcode",
+            "cost_price",
+            "selling_price",
+            "stock",
+            "low_stock_at",
+            "created_at"
+          ]
+        )
+      );
       csvParts.push("");
 
       csvParts.push("=== STAFF ===");
-      if (staff.length > 0) {
-        csvParts.push(convertToCSV(staff.map(s => ({
-          id: s.id,
-          name: s.name,
-          role: s.role,
-          active: s.active ? 1 : 0,
-          created_at: s.createdAt
-        })), ["id", "name", "role", "active", "created_at"]));
-      }
+      csvParts.push(
+        convertToCSV(
+          staff.map((member) => ({
+            id: member.id,
+            name: member.name,
+            role: member.role,
+            active: member.active ? 1 : 0,
+            created_at: member.createdAt
+          })),
+          ["id", "name", "role", "active", "created_at"]
+        )
+      );
       csvParts.push("");
 
       csvParts.push("=== SALES ===");
-      if (salesResult.sales.length > 0) {
-        csvParts.push(convertToCSV(salesResult.sales.map(s => ({
-          id: s.id,
-          receipt_number: s.receiptNumber,
-          total: s.total,
-          payment_method: s.paymentMethod,
-          customer_phone: s.customerPhone || "",
-          staff_id: s.staffId || "",
-          created_at: s.createdAt
-        })), ["id", "receipt_number", "total", "payment_method", "customer_phone", "staff_id", "created_at"]));
-      }
+      csvParts.push(
+        convertToCSV(
+          sales.map((sale) => ({
+            id: sale.id,
+            receipt_number: sale.receiptNumber,
+            total: sale.total,
+            payment_method: sale.paymentMethod,
+            customer_phone: sale.customerPhone || "",
+            staff_id: sale.staffId || "",
+            created_at: sale.createdAt
+          })),
+          [
+            "id",
+            "receipt_number",
+            "total",
+            "payment_method",
+            "customer_phone",
+            "staff_id",
+            "created_at"
+          ]
+        )
+      );
       csvParts.push("");
 
       csvParts.push("=== SALE_ITEMS ===");
-      if (allSaleItems.length > 0) {
-        csvParts.push(convertToCSV(allSaleItems.map(item => ({
-          id: item.id,
-          receipt_number: item.receiptNumber,
-          product_name: item.productName,
-          quantity: item.quantity,
-          unit_price: item.unitPrice,
-          line_total: item.lineTotal
-        })), ["id", "receipt_number", "product_name", "quantity", "unit_price", "line_total"]));
-      }
+      csvParts.push(
+        convertToCSV(
+          allSaleItems.map((item) => ({
+            id: item.id,
+            receipt_number: item.receiptNumber,
+            product_name: item.productName,
+            quantity: item.quantity,
+            unit_price: item.unitPrice,
+            line_total: item.lineTotal
+          })),
+          [
+            "id",
+            "receipt_number",
+            "product_name",
+            "quantity",
+            "unit_price",
+            "line_total"
+          ]
+        )
+      );
       csvParts.push("");
 
       csvParts.push("=== CUSTOMERS ===");
-      if (customers.length > 0) {
-        csvParts.push(convertToCSV(customers.map(c => ({
-          id: c.id,
-          phone: c.phone,
-          name: c.name || "",
-          total_spent: c.totalSpent,
-          visit_count: c.visitCount,
-          created_at: c.createdAt
-        })), ["id", "phone", "name", "total_spent", "visit_count", "created_at"]));
-      }
+      csvParts.push(
+        convertToCSV(
+          customers.map((customer) => ({
+            id: customer.id,
+            phone: customer.phone,
+            name: customer.name || "",
+            total_spent: customer.totalSpent,
+            visit_count: customer.visitCount,
+            created_at: customer.createdAt
+          })),
+          ["id", "phone", "name", "total_spent", "visit_count", "created_at"]
+        )
+      );
 
       const csv = csvParts.join("\n");
-      const fileName = `myERP-backup-${new Date().toISOString().split("T")[0]}.csv`;
+      const filename = `myERP-backup-${new Date().toISOString().split("T")[0]}.csv`;
 
       if (Platform.OS === "web") {
-        downloadCsvOnWeb(csv, fileName);
+        downloadCsvOnWeb(csv, filename);
+        notify({ title: "Backup downloaded", tone: "success" });
       } else {
-        const file = new File(Paths.document, fileName);
+        const file = new File(Paths.document, filename);
         file.write(csv, { encoding: "utf8" });
-
-        const fileUri = file.uri;
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          await Sharing.shareAsync(fileUri, {
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(file.uri, {
             mimeType: "text/csv",
-            dialogTitle: "Export myERP Backup",
+            dialogTitle: "Export myERP backup",
             UTI: "public.comma-separated-values-text"
           });
         } else {
-          notify({ title: "Data Ready", message: "Your data is ready to export. Use the share feature." });
+          notify({
+            title: "Backup ready",
+            message: `Saved as ${filename} in the app documents folder.`
+          });
         }
       }
     } catch (error) {
       notify({
-        title: "Export Failed",
-        message: error instanceof Error ? error.message : "Could not export data"
+        title: "Export failed",
+        message: error instanceof Error ? error.message : "Could not export data.",
+        tone: "danger"
       });
     } finally {
       setExporting(false);
     }
   }
 
-  function downloadCsvOnWeb(csv: string, filename: string) {
-    if (typeof document === "undefined") return;
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
-  }
+  const included = [
+    "Business profile and tax settings",
+    "Products, prices, stock and barcodes",
+    "Sales, line items and payment method",
+    "Customer phone numbers and lifetime value",
+    "Staff names, roles and active status"
+  ];
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-      <Screen>
-        <View style={{ marginBottom: 16 }}>
-          <Text style={{ color: colors.ink, fontSize: fontSize["3xl"], fontWeight: "900" }}>Backup & Export</Text>
-          <Text style={{ color: colors.muted, marginTop: 8, lineHeight: 22 }}>
-            Export all your business data as a CSV file. You can use this to transfer data to another device or keep a backup.
-          </Text>
+    <Screen maxWidth={isCompact ? 720 : 860}>
+      <AppText tone="secondary" variant="small">
+        A complete, portable copy of your data. Nothing is uploaded.
+      </AppText>
+
+      <Surface style={styles.card}>
+        <View style={styles.icon}>
+          <Ionicons color={theme.colors.primary} name="download-outline" size={26} />
         </View>
-
-        <PrimaryButton
-          disabled={exporting}
+        <AppText variant="title3">CSV backup</AppText>
+        <AppText tone="secondary">
+          Export every table into one CSV file. Open it in Excel, Google Sheets,
+          Numbers or keep it as an offline record. Nothing is uploaded.
+        </AppText>
+        <Button
+          fullWidth
+          icon="download-outline"
+          loading={exporting}
           onPress={handleExport}
-          title={exporting ? "Exporting..." : "Export All Data (CSV)"}
+          size="lg"
+          title={exporting ? "Preparing backup" : "Export all data"}
         />
+      </Surface>
 
-        <SecondaryButton onPress={() => router.back()} title="Back" />
-      </Screen>
-    </ScrollView>
+      <View style={styles.section}>
+        <AppText variant="title3">What is included</AppText>
+        <Surface padded={false}>
+          {included.map((item, index) => (
+            <View
+              key={item}
+              style={[styles.row, index < included.length - 1 && styles.divider]}
+            >
+              <Ionicons color={theme.colors.success} name="checkmark-circle" size={18} />
+              <AppText style={styles.rowText} variant="small">
+                {item}
+              </AppText>
+            </View>
+          ))}
+        </Surface>
+      </View>
+
+      <View style={styles.note}>
+        <AppText tone="secondary" variant="small">
+          Keep the file somewhere safe. To move to a new device, install myERP
+          and use the same export as a reference while the import tool is built.
+        </AppText>
+        <Button
+          onPress={() => router.back()}
+          title="Back"
+          variant="ghost"
+        />
+      </View>
+    </Screen>
   );
 }
+
+const backupStyles = createStyles((theme) => ({
+  card: { gap: theme.space.sm },
+  icon: {
+    alignItems: "center",
+    backgroundColor: theme.colors.primarySoft,
+    borderRadius: theme.radius.md,
+    height: 52,
+    justifyContent: "center",
+    width: 52
+  },
+  section: { gap: theme.space.xs },
+  row: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: theme.space.sm,
+    paddingHorizontal: theme.space.md,
+    paddingVertical: theme.space.sm
+  },
+  divider: {
+    borderBottomColor: theme.colors.border,
+    borderBottomWidth: 1
+  },
+  rowText: { flex: 1 },
+  note: { gap: theme.space.xs }
+}));
+const useBackupStyles = () => backupStyles();
