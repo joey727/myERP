@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "build:web": "EXPO_PUBLIC_PLATFORM=web expo export -p web --output-dir docs/app && node scripts/inject-coi.js docs/app/index.html",
     "lint": "expo lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "deploy:worker": "node --env-file-if-exists=worker/.env worker/deploy.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -46,6 +47,9 @@
     "typescript": "~5.9.2"
   },
   "knip": {
+    "entry": [
+      "worker/index.js"
+    ],
     "ignore": [
       "babel.config.js",
       "public/coi-serviceworker.js"

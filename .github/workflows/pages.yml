@@ -36,6 +36,7 @@ jobs:
       - name: Build web export
         env:
           EXPO_PUBLIC_PLATFORM: web
+          EXPO_PUBLIC_USAGE_URL: ${{ vars.USAGE_URL }}
         run: npx expo export -p web --output-dir docs/app
 
       - name: Inject COI service worker

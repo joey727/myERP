@@ -9,6 +9,7 @@ import { initializeDatabase, getBusiness, subscribeBusinessChange } from "@/db/d
 import { useSession } from "@/auth/session";
 import type { Business } from "@/db/types";
 import { BusinessProvider } from "@/business";
+import { recordAppOpen } from "@/lib/usage";
 import { ThemeProvider, useTheme } from "@/ui/design";
 import { ConfirmHost } from "@/ui/hosts";
 import { AppText, Screen, ToastHost } from "@/ui/primitives";
@@ -72,6 +73,10 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [ready, loading]);
+
+  useEffect(() => {
+    if (ready) recordAppOpen();
+  }, [ready]);
 
   useEffect(() => {
     if (!ready || loading) return;

@@ -363,6 +363,9 @@
     .install-note {
       margin: 18px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5;
     }
+    .install-stat {
+      margin: 6px 0 0; color: var(--primary-soft-text); font-size: 12px; font-weight: 500;
+    }
     .install-card .btn { margin-top: auto; align-self: flex-start; }
     .install-card .steps + .btn { margin-top: 22px; }
 
@@ -892,6 +895,7 @@
             </ol>
             <a class="btn btn-primary" href="./app/">Open the web app</a>
             <p class="install-note">Runs in the browser. After the first load it keeps working offline.</p>
+            <p class="install-stat" id="web-app-stats" hidden></p>
           </article>
 
           <article class="install-card">
@@ -914,6 +918,7 @@
               Download APK
             </a>
             <p class="install-note">Requires Android 8 or newer. Updates install over the top; your local data stays in place.</p>
+            <p class="install-stat" id="apk-stats" hidden></p>
           </article>
 
           <article class="install-card">
@@ -1005,7 +1010,7 @@ npm run ios</code></pre>
               Where is my data stored?
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
             </summary>
-            <p>On your device. There is no cloud account and no server holding your shop data. The web app and the Android app use separate local stores, and every browser or device keeps its own copy. Export a CSV backup from Backup and export whenever you need one.</p>
+            <p>On your device. There is no cloud account and no server holding your shop data. The web app and the Android app use separate local stores, and every browser or device keeps its own copy. Export a CSV backup from Backup and export whenever you need one. The only thing that leaves a device is an anonymous count of app opens, with no shop data, account or identifier.</p>
           </details>
           <details>
             <summary>
@@ -1090,6 +1095,32 @@ npm run ios</code></pre>
         toggle.setAttribute("aria-label", "Open menu");
       }
     });
+
+    const numberFormat = new Intl.NumberFormat();
+
+    fetch("https://myerp-usage.appsys.workers.dev/stats")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((stats) => {
+        if (!stats) return;
+
+        const webStats = document.getElementById("web-app-stats");
+        const apkStats = document.getElementById("apk-stats");
+
+        if (webStats && stats.webOpens > 0) {
+          const opens = numberFormat.format(stats.webOpens);
+          const homeScreen = stats.webHomeScreen > 0
+            ? ` · ${numberFormat.format(stats.webHomeScreen)} from the Home Screen`
+            : "";
+          webStats.textContent = `${opens} app ${stats.webOpens === 1 ? "open" : "opens"}${homeScreen}`;
+          webStats.hidden = false;
+        }
+        if (apkStats && stats.apkDownloads > 0) {
+          const downloads = numberFormat.format(stats.apkDownloads);
+          apkStats.textContent = `${downloads} APK ${stats.apkDownloads === 1 ? "download" : "downloads"}`;
+          apkStats.hidden = false;
+        }
+      })
+      .catch(() => {});
   </script>
 </body>
 </html>
