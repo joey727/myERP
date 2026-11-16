@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.3.2";
+export const APP_VERSION = "1.3.3";
 export const APP_NAME = "myERP";
 
 const REPOSITORY = "joey727/myERP";
