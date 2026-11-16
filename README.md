@@ -24,7 +24,17 @@ Ghanaian small businesses face unique challenges:
 - Add products with name, price, and barcode
 - Track stock levels automatically
 - Get alerts when items run low
-- Search and filter products by category
+- Search and filter products by name, barcode, or category
+- Log every stock movement with the staff member and a reason
+
+### Stock Auditing (Owner)
+- See stock value, units on hand, and products needing a recount at a glance
+- Follow a plain-language three-step guide: count the shelf, enter the count, explain and confirm
+- Compare system count with physical count and see the cost-value impact before saving
+- Record why stock differs: damaged, missing, found extra, short delivery, earlier miscount, or other
+- Review every count before confirming, including verifications with no change
+- Review the full movement ledger by reason: sale, restock, adjustment, void, or audit
+- Tap any movement to see a plain-language explanation, the staff member, the reason, and the note
 
 ### Sales & Point of Sale
 - Fast grid-based product selection
@@ -36,8 +46,8 @@ Ghanaian small businesses face unique challenges:
 
 ### Staff Management
 - Create staff accounts with PINs
-- Assign roles (Owner, Manager, Cashier, Inventory)
-- Track who made each sale
+- Assign roles: Owner, Manager, or Cashier
+- Track who made each sale and each stock adjustment
 - Enable/disable staff access
 
 ### Role-Based Access Control
@@ -45,32 +55,41 @@ Each staff role has specific permissions:
 
 | Area | Owner | Manager | Cashier |
 |---|---|---|---|
-| Manage products (create/edit/delete) | ✅ | ✅ | ❌ |
-| Process sales | ✅ | ✅ | ✅ |
-| View reports | ✅ | ✅ | ✅ |
-| Manage staff | ✅ | ✅ | ❌ |
-| Edit business settings | ✅ | ❌ | ❌ |
-| Export data | ✅ | ✅ | ❌ |
+| Process sales | Yes | Yes | Yes |
+| Manage products and stock | Yes | Yes | Read only |
+| View customers | Yes | Yes | No |
+| Manage staff | Yes | Yes | No |
+| Export data | Yes | Yes | No |
+| Edit business settings | Yes | No | No |
+| View reports and financial analytics | Yes | No | No |
+| Run stock audits | Yes | No | No |
 
-Tabs that contain no accessible actions (e.g., the Staff tab for Cashiers) are hidden from the tab bar. All other tabs remain visible with action buttons hidden based on the user's role.
+Navigation adapts to the signed-in role. Screens a role cannot use are left out of the tab bar and the More menu, and direct links redirect home. Financial totals on the dashboard are owner-only; managers and cashiers see operational counts instead.
 
-### Reports & Analytics
+### Reports & Analytics (Owner)
 - See daily, weekly, or monthly revenue
 - View top-selling products
 - Track staff performance
 - Understand cash vs MoMo payments
+- Compare growth against the previous period
 
 ### Receipts
 - Generate professional receipts
 - Print or share as PDF
-- Shows tax if configured
-- Includes customer phone if provided
+- Shows tax, address, and receipt footer when configured
+- Includes the serving staff member and customer phone if provided
 
 ### Data & Backup
 - Export all your data as CSV (spreadsheet format)
 - Includes products, staff, sales, customers, and more
 - Works completely offline
 - No cloud subscription needed
+
+### App Updates
+- See the installed version and check for a newer release from inside the app
+- Read release notes before updating
+- Download the Android APK directly, or open the release page for iOS and web builds
+- Shop data stays on the device and carries over after an update
 
 ---
 
@@ -80,13 +99,16 @@ Tabs that contain no accessible actions (e.g., the Staff tab for Cashiers) are h
 
 1. **Download and install**
    - **Android:** [Download the latest APK](https://github.com/joey727/myERP/releases/latest/download/myerp.apk)
-   - **Web:** [Open myERP in your browser](https://joey727.github.io/myerp/)
+   - **iOS:** [Open the latest release](https://github.com/joey727/myERP/releases/latest) for TestFlight/App Store builds. Simulator builds are attached for development.
+   - **Web:** [Open myERP in your browser](https://joey727.github.io/myERP/app/)
    - **Source:** Clone this repository, run `npm install`, then `npm start`
+   - **Updates:** Signed-in users can open **More → App updates** to check for and download a newer version
 
 2. **First-time setup**
-   - Enter your business name
-   - Choose your business type
+   - Enter your business name and business type
+   - Add contact details: phone, optional email, address, tax ID, and receipt footer
    - Set your currency (default: Ghana Cedis)
+   - Create the owner account with a name and PIN
 
 3. **Start selling**
    - Add your products to inventory
@@ -99,12 +121,17 @@ Tabs that contain no accessible actions (e.g., the Staff tab for Cashiers) are h
 
 | Screen | What you do there |
 |--------|-------------------|
-| Dashboard | See today's sales, revenue, and alerts |
-| Inventory | Browse, add, edit, or delete products |
-| Sales | Make sales and serve customers |
-| Staff | Manage your team (Owner/Manager only) |
-| Reports | View analytics and trends (hidden for Inventory role) |
-| Settings | Update business details and export data |
+| Home | See today's sales, low stock alerts, and team summary |
+| Sell | Make sales, pick products, and serve customers |
+| Stock | Browse, add, edit, or delete products |
+| Customers | Search customers and review purchase history |
+| Reports | View analytics and trends (owner only) |
+| Staff | Manage your team (owner and manager) |
+| Stock audit | Count stock and review movement history (owner only) |
+| Sales history | Review, search, and reopen past receipts |
+| Settings | Update business details, receipt details, and formatting |
+| App updates | Check for a newer version and download it |
+| Backup & export | Export all data as CSV (owner and manager) |
 
 ---
 
@@ -116,8 +143,7 @@ Tabs that contain no accessible actions (e.g., the Staff tab for Cashiers) are h
 - **Language:** TypeScript
 - **Database:** SQLite (works offline)
 - **Navigation:** Expo Router
-- **Charts:** react-native-chart-kit
-- **Charts library:** react-native-svg
+- **Charts:** react-native-svg
 
 ### Running Locally
 
@@ -142,22 +168,29 @@ myERP/
 ├── app/                    # App screens (Expo Router)
 │   ├── (tabs)/            # Bottom tab screens
 │   │   ├── index.tsx      # Dashboard
-│   │   ├── inventory.tsx  # Inventory
-│   │   ├── sales.tsx       # POS/Sales
-│   │   ├── staff.tsx       # Staff management
-│   │   └── reports.tsx     # Analytics
-│   ├── login.tsx           # PIN login
-│   ├── settings.tsx         # Business settings
-│   ├── scan.tsx            # Barcode scanner
-│   └── receipt/[id].tsx    # Receipt view
+│   │   ├── sales.tsx      # POS/Sell
+│   │   ├── inventory.tsx  # Stock
+│   │   ├── customers.tsx  # Customers
+│   │   ├── reports.tsx    # Analytics (owner only)
+│   │   ├── staff.tsx      # Staff management
+│   │   └── more.tsx       # Role-aware menu
+│   ├── audit.tsx          # Stock audit (owner only)
+│   ├── history.tsx        # Sales history
+│   ├── login.tsx          # PIN login
+│   ├── settings.tsx       # Business settings
+│   ├── backup.tsx         # CSV export
+│   ├── updates.tsx        # In-app update check and download
+│   ├── scan.tsx           # Barcode scanner
+│   └── receipt/[id].tsx   # Receipt view
 │
 ├── src/                    # Source code
-│   ├── auth/               # Authentication & permissions
-│   ├── db/                 # Database functions
-│   ├── lib/                # Utilities
-│   └── ui/                 # Shared components
+│   ├── auth/              # Authentication and permissions
+│   ├── db/                # Database queries and migrations
+│   ├── lib/               # Utilities
+│   └── ui/                # Shared components, tokens, and navigation
 │
-├── ios/                    # iOS native project
+├── public/index.html      # Web HTML shell and base styles
+├── ios/                   # iOS native project
 └── android/               # Android native project
 ```
 
